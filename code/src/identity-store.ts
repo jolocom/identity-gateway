@@ -1,6 +1,9 @@
+import { KeyPair } from './key-pair'
+
 export interface GatewayIdentityStore {
   storeIdentity({userName, seedPhrase, keyPair})
-  getUserIdBySeedPhrase({seedPhrase})
+  getUserIdBySeedPhrase(seedPhrase) : Promise<string>
+  getKeyPairBySeedPhrase(seedPhrase) : Promise<KeyPair>
 }
 
 export class GatewayMemoryIdentityStore implements GatewayIdentityStore {
@@ -10,11 +13,11 @@ export class GatewayMemoryIdentityStore implements GatewayIdentityStore {
     this.identities[seedPhrase] = {userName, keyPair}
   }
   
-  async getUserIdBySeedPhrase({seedPhrase}) {
+  async getUserIdBySeedPhrase(seedPhrase) {
     return this.identities[seedPhrase].userName
   }
 
-  async getKeyPairBySeedPhrase({seedPhrase}) {
+  async getKeyPairBySeedPhrase(seedPhrase) {
     return this.identities[seedPhrase].keyPair
   }
 }
