@@ -1,8 +1,6 @@
-import { KeyPair } from './private-key-stores';
-
 export interface GatewayIdentityStore {
   storeIdentity({userName, seedPhrase, keyPair})
-  getUserNameBySeedPhrase({seedPhrase})
+  getUserIdBySeedPhrase({seedPhrase})
 }
 
 export class GatewayMemoryIdentityStore implements GatewayIdentityStore {
@@ -12,7 +10,7 @@ export class GatewayMemoryIdentityStore implements GatewayIdentityStore {
     this.identities[seedPhrase] = {userName, keyPair}
   }
   
-  async getUserNameBySeedPhrase({seedPhrase}) {
+  async getUserIdBySeedPhrase({seedPhrase}) {
     return this.identities[seedPhrase].userName
   }
 

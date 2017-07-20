@@ -8,7 +8,7 @@ export interface AccessRights {
          read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
         })
   check({identity, path} : {identity : string, path : string})
-       : {read : boolean, write : boolean}
+       : Promise<{read : boolean, write : boolean}>
 }
 
 export class MemoryAccessRights implements AccessRights {

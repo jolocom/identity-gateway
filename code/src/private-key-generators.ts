@@ -1,5 +1,5 @@
 import * as openpgp from 'openpgp'
-import { KeyPair } from './private-key-stores'
+import { KeyPair } from './key-pair'
 
 export class GatewayPrivateKeyGenerator {
   async generate({name, email, passphrase} :
