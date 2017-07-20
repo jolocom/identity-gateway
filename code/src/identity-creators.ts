@@ -1,14 +1,29 @@
+import { GatewayIdentityStore } from './identity-store';
 import { GatewayPrivateKeyGenerator, SolidPrivateKeyGenerator } from './private-key-generators';
 
 export class GatewayIdentityCreator {
-  private _privateKeyGenerator
+  private _privateKeyGenerator : GatewayPrivateKeyGenerator
+  private _identityStore : GatewayIdentityStore
 
-  constructor({privateKeyGenerator} : {privateKeyGenerator : GatewayPrivateKeyGenerator}) {
-
+  constructor({privateKeyGenerator, identityStore} :
+              {privateKeyGenerator : GatewayPrivateKeyGenerator,
+               identityStore : GatewayIdentityStore})
+  {
+    this._privateKeyGenerator = privateKeyGenerator
+    this._identityStore = identityStore
   }
 
-  createIdentity({userName, password, seedPhrase}) {
-
+  async createIdentity({userName, password, seedPhrase} :
+                 {userName : string, password : string, seedPhrase : string})
+  {
+    const keyPair = await this._privateKeyGenerator.generate({
+      name: `http://indentity.jolocom.com/${userName}`,
+      email: `${userName}@identity.jolocom.com`,
+      passphrase: seedPhrase
+    })
+    await this._identityStore.storeIdentity({
+      userName, keyPair, seedPhrase
+    })
   }
 }
 
