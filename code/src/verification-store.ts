@@ -1,7 +1,7 @@
 import * as openpgp from 'openpgp'
 import { AttributeStore } from './attribute-store';
 
-type PublicKeyRetriever = (string) => Promise<string>
+export type PublicKeyRetriever = (string) => Promise<string>
 
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
