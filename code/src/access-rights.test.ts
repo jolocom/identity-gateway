@@ -5,15 +5,15 @@ import { MemoryAccessRights } from './access-rights'
 function testAccessRights({accessRights}) {
   it('should be able to modify and test access rights', async () => {
     await accessRights.grant({
-      identity: 'https://identity.test.com', pattern: '/identity/passport/*',
+      userID: 'test', identity: 'https://identity.test.com', pattern: '/identity/passport/*',
       read: true, write: false
     })
     await accessRights.grant({
-      identity: 'https://identity.test.com', pattern: '/identity/passport/holland',
+      userID: 'test', identity: 'https://identity.test.com', pattern: '/identity/passport/holland',
       read: true, write: true
     })
     expect(await accessRights.check({
-      identity: 'https://identity.test.com', path: '/identity/passport/greece'
+      userID: 'test', identity: 'https://identity.test.com', path: '/identity/passport/greece'
     })).to.deep.equal({
       read: true, write: false
     })

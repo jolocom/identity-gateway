@@ -13,8 +13,8 @@ export class GatewayIdentityCreator {
     this._identityStore = identityStore
   }
 
-  async createIdentity({userName, password, seedPhrase} :
-                 {userName : string, password : string, seedPhrase : string})
+  async createIdentity({userName, seedPhrase} :
+                 {userName : string, seedPhrase : string})
   {
     const keyPair = await this._privateKeyGenerator.generate({
       name: `https://indentity.jolocom.com/${userName}`,

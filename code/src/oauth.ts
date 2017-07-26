@@ -1,8 +1,8 @@
-import { GatewayIdentityStore } from '../identity-store';
-import { PublicKeyRetriever } from '../verification-store'
+import { GatewayIdentityStore } from './identity-store';
+import { PublicKeyRetriever } from './verification-store'
 import * as openpgp from 'openpgp'
 
-export class OauthModel {
+export class OAuthModel {
   private _gatewayIdentityStore : GatewayIdentityStore
   private _tokenStore : TokenStore
   private _publicKeyRetriever : PublicKeyRetriever
