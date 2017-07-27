@@ -63,3 +63,56 @@ export class MemoryAttributeStore implements AttributeStore {
       .valueOf()
   }
 }
+
+export class SequelizeAttributeStore implements AttributeStore {
+  private _attributeModel
+
+  constructor({attributeModel}) {
+    this._attributeModel = attributeModel
+  }
+
+  async storeStringAttribute({userId, type, id, value} :
+                             {userId : string, type : string, id : string, value : string})
+  {
+    await this._attributeModel.create({
+      userId, type, key: id, value
+    })
+  }
+
+  async retrieveStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
+    const attribute = await this._attributeModel.findOne({
+      userId, type, key: id,
+    })
+    return {value: attribute.value}
+  }
+
+  async deleteStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
+    await this._attributeModel.delete({where: {
+      userId,
+      type,
+      key: id,
+    }})
+  }
+
+  async listAttributeTypes({userId}) : Promise<string[]> {
+    const attributes = await this._attributeModel.find({
+      userId
+    })
+    return _(attributes)
+      .map(attribute => attribute.type)
+      .sort()
+      .sortedUniq()
+      .valueOf()
+  }
+
+  async listAttributes({userId, type}) : Promise<string[]> {
+    const attributes = await this._attributeModel.find({
+      userId, type
+    })
+    return _(attributes)
+      .map(attribute => attribute.key)
+      .sort()
+      .sortedUniq()
+      .valueOf()
+  }
+}

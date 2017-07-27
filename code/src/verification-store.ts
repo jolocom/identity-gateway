@@ -14,9 +14,12 @@ export abstract class VerificationStore {
     this._publicKeyRetriever = publicKeyRetriever
   }
 
-  abstract storeVerification({userId, attrType, attrId, verifierIdentity, signature})
-  abstract getVerifications({userId, attrType, attrId})
-  abstract getVerification({userId, attrType, attrId, verificationId})
+  abstract storeVerification({userId, attrType, attrId, verifierIdentity, signature}) : Promise<string>
+  abstract getVerifications({userId, attrType, attrId}) : Promise<any>
+
+  async getVerification({userId, attrType, attrId, verificationId}) {
+    return this.getVerifications({userId, attrType, attrId})[verificationId]
+  }
 
   protected async checkVerification({
     userId, attrType, attrId,
@@ -52,8 +55,9 @@ export class MemoryVerificationStore extends VerificationStore {
     }
     const attrVerifications = userVerifications[verificationsKey]
 
-    const verificationId = Date.now()
+    const verificationId = Date.now().toString()
     attrVerifications[verificationId] = {verifierIdentity, signature}
+    return verificationId
   }
 
   async getVerifications({userId, attrType, attrId}) {
@@ -62,8 +66,49 @@ export class MemoryVerificationStore extends VerificationStore {
     const attrVerifications = userVerifications[verificationsKey]
     return attrVerifications
   }
+}
 
-  async getVerification({userId, attrType, attrId, verificationId}) {
-    return this.getVerifications({userId, attrType, attrId})[verificationId]
+export class SequelizeVerificationStore extends VerificationStore {
+  private _attributeModel
+  private _verificationModel
+
+  constructor({attributeModel, verificationModel, attributeStore, publicKeyRetriever} :
+              {attributeModel, verificationModel, attributeStore : AttributeStore,
+               publicKeyRetriever : PublicKeyRetriever})
+  {
+    super({attributeStore, publicKeyRetriever})
+    this._attributeModel = attributeModel
+    this._verificationModel = verificationModel
+  }
+
+  async storeVerification({userId, attrType, attrId, verifierIdentity, signature}) {
+    const attribute = await this._attributeModel.findOne({
+      userId, type: attrType, key: attrId,
+    })
+    const verification = await this._verificationModel.create({
+      attributeId: attribute.id,
+      identity: verifierIdentity,
+      signature
+    })
+    return verification.id
+  }
+
+  async getVerifications({userId, attrType, attrId}) {
+    const attribute = await this._attributeModel.findOne({
+      userId, type: attrType, key: attrId,
+    })
+    const verificationRecords = await this._verificationModel.find({
+      attributeId: attribute.id
+    })
+
+    const verifications = {}
+    verificationRecords.forEach(verification => {
+      verifications[verification.id] = {
+        verifierIdentity: verification.identity,
+        signature: verification.signature,
+      }
+    })
+
+    return verifications
   }
 }

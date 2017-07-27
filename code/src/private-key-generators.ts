@@ -1,5 +1,6 @@
 import * as openpgp from 'openpgp'
 import { KeyPair } from './key-pair'
+openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
 
 export class GatewayPrivateKeyGenerator {
   async generate({name, email, passphrase} :
