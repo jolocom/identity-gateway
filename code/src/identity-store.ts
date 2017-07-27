@@ -1,4 +1,5 @@
 import * as _ from 'lodash'
+import * as crypto from 'crypto'
 import { KeyPair } from './key-pair'
 
 export interface GatewayIdentityStore {
@@ -9,7 +10,7 @@ export interface GatewayIdentityStore {
   getPublicKeyByUserName(userName) : Promise<string>
 }
 
-export class GatewayMemoryIdentityStore implements GatewayIdentityStore {
+export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
   private identities = {}
 
   async storeIdentity({userName, seedPhrase, keyPair}) {
@@ -30,5 +31,62 @@ export class GatewayMemoryIdentityStore implements GatewayIdentityStore {
 
   async getPublicKeyByUserName(userName) : Promise<string> {
     return ((_.find(this.identities, {userName}) || {}).keyPair || {}).publicKey
+  }
+}
+
+export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
+  private _identityModel
+
+  constructor({identityModel}) {
+    this._identityModel = identityModel
+  }
+
+  async storeIdentity({userName, seedPhrase, keyPair}) {
+    const seedPhraseHashObject = crypto.createHash('sha512')
+    seedPhraseHashObject.update(seedPhrase)
+    const seedPhraseHash = seedPhraseHashObject.digest('hex')
+
+    await this._identityModel.create({
+      userName,
+      seedPhraseHash: seedPhraseHash,
+      dataBackend: 'mysql',
+      verificationBackend: 'mysql+pgp',
+      privateKey: keyPair.publicKey,
+      publicKey: keyPair.privateKey,
+    })
+  }
+  
+  async getUserIdBySeedPhrase(seedPhrase) {
+    const seedPhraseHashObject = crypto.createHash('sha512')
+    seedPhraseHashObject.update(seedPhrase)
+    const seedPhraseHash = seedPhraseHashObject.digest('hex')
+    const identity = await this._identityModel.findOne({seedPhraseHash})
+    return identity && identity.id
+  }
+  
+  async getUserIdByUserName(userName) {
+    const identity = await this._identityModel.findOne({userName})
+    return identity && identity.id
+  }
+
+  async getKeyPairBySeedPhrase(seedPhrase) {
+    const seedPhraseHashObject = crypto.createHash('sha512')
+    seedPhraseHashObject.update(seedPhrase)
+    const seedPhraseHash = seedPhraseHashObject.digest('hex')
+    const identity = await this._identityModel.findOne({seedPhraseHash})
+
+    if (!identity) {
+      return null
+    }
+
+    return {
+      privateKey: identity.privateKey,
+      publicKey: identity.publicKey,
+    }
+  }
+
+  async getPublicKeyByUserName(userName) : Promise<string> {
+    const identity = await this._identityModel.findOne({userName})
+    return identity && identity.publicKey
   }
 }

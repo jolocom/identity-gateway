@@ -31,8 +31,8 @@ export function createApp({oAuthModel, accessRights, identityStore,
   })
   app.oauth = new OAuthServer({
     model: oAuthModel,
-  });
-  app.all('/oauth/token', app.oauth.grant())
+  })
+  app.all('/oauth/token', app.oauth.token())
 
   app.get('/:userName', async (req, res) => {
     res.json({publicKey: (await identityStore.getPublicKeyByUserName(req.params.userName))})
@@ -98,6 +98,14 @@ export function createApp({oAuthModel, accessRights, identityStore,
         res.json(await verificationStore.getVerifications({
           userId, attrType: req.params.attribute, attrId: req.params.id
         }))
+      },
+      put: async (req, res) => {
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const verificationId = await verificationStore.storeVerification({
+          userId, attrType: req.params.attribute, attrId: req.params.id,
+          verifierIdentity: req.client.id, signature: req.body
+        })
+        res.json({verificationId})
       }
     },
     '/:userName/identity/:attribute/:id/verifications/:id': {
@@ -107,14 +115,6 @@ export function createApp({oAuthModel, accessRights, identityStore,
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verificationId: req.params.id
         }))
-      },
-      put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        await verificationStore.storeVerification({
-          userId, attrType: req.params.attribute, attrId: req.params.id,
-          verifierIdentity: req.client.id, signature: req.body
-        })
-        res.send('OK')
       }
     },
     '/:userName/sign': {
@@ -132,7 +132,7 @@ export function createApp({oAuthModel, accessRights, identityStore,
 
   _.each(protectedRoutes, (methods, path) => {
     _.each(methods, (func, method) => {
-      app[method]('/', app.oauth.authorise(), accessRightsMiddleware({
+      app[method]('/', app.oauth.authorize(), accessRightsMiddleware({
         accessRights, identityStore
       }), func)
     })
