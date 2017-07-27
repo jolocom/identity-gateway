@@ -21,6 +21,18 @@ export class GatewayPrivateKeyGenerator {
   }
 }
 
+export class DummyGatewayPrivateKeyGenerator {
+  async generate({name, email, passphrase} :
+           {name : string, email : string, passphrase : string}) :
+           Promise<KeyPair>
+  {
+    return {
+      publicKey: `PUBLIC KEY: ${name} (${email})`,
+      privateKey: `PRIVATE KEY: ${name} (${email})`
+    }
+  }
+}
+
 export class SolidPrivateKeyGenerator {
   
 }

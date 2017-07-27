@@ -51,8 +51,8 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
       seedPhraseHash: seedPhraseHash,
       dataBackend: 'mysql',
       verificationBackend: 'mysql+pgp',
-      privateKey: keyPair.publicKey,
-      publicKey: keyPair.privateKey,
+      privateKey: keyPair.privateKey,
+      publicKey: keyPair.publicKey,
     })
   }
   

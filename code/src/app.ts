@@ -24,23 +24,47 @@ export function createApp({oAuthModel, accessRights, identityStore,
   const app = express()
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
-  app.use(function(req, res, next) {
+  app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next()
   })
+  // app.use(async (req, res, next) => {
+  //   try {
+  //     console.log(111)
+  //     const res = next()
+  //     if (res && res.then) {
+  //       await res
+  //     }
+  //     console.log(222)
+  //   } catch(e) {
+  //     console.error(e)
+  //     console.trace()
+  //   }
+  // })
   app.oauth = new OAuthServer({
     model: oAuthModel,
+    grants: ['password']
   })
   app.all('/oauth/token', app.oauth.token())
 
   app.get('/:userName', async (req, res) => {
-    res.json({publicKey: (await identityStore.getPublicKeyByUserName(req.params.userName))})
+    try {
+      res.json({publicKey: (await identityStore.getPublicKeyByUserName(req.params.userName))})
+    } catch(e) {
+      console.error(e)
+      console.trace()
+    }
   })
   app.put('/:userName', async (req, res) => {
-    await identityCreator.createIdentity({
-      userName: req.params.userName, seedPhrase: req.params.seedPhrase
-    })
+    try {
+      await identityCreator.createIdentity({
+        userName: req.params.userName, seedPhrase: req.body.seedPhrase
+      })
+    } catch(e) {
+      console.error(e)
+      console.trace()
+    }
     res.send('OK')
   })
 
@@ -132,7 +156,7 @@ export function createApp({oAuthModel, accessRights, identityStore,
 
   _.each(protectedRoutes, (methods, path) => {
     _.each(methods, (func, method) => {
-      app[method]('/', app.oauth.authorize(), accessRightsMiddleware({
+      app[method](path, app.oauth.authorize(), accessRightsMiddleware({
         accessRights, identityStore
       }), func)
     })

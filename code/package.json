@@ -34,6 +34,7 @@
     "rand-token": "^0.3.0",
     "random-js": "^1.0.8",
     "redis": "^2.7.1",
+    "request-promise-native": "^1.0.4",
     "sequelize": "^4.4.2",
     "smartwallet-contracts": "jolocom/smartwallet-contracts",
     "source-map-support": "^0.4.0",

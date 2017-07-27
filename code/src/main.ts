@@ -1,17 +1,19 @@
-import { DataSigner } from './data-signer';
-import { GatewayPrivateKeyGenerator } from './private-key-generators';
-import { GatewayIdentityCreator } from './identity-creators';
-import { AttributeVerifier } from './attribute-verifier';
-import { MemoryVerificationStore } from './verification-store';
-import { MemoryAttributeStore } from './attribute-store';
-import { MemoryAccessRights } from './access-rights';
-import { GatewayMemoryIdentityStore } from './identity-store';
-import { OAuthModel, MemoryTokenStore } from './oauth';
 require('source-map-support').install()
 require('regenerator-runtime/runtime')
 import * as http from 'http'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
+import * as Sequelize from 'sequelize'
+import { DataSigner } from './data-signer';
+import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators';
+import { GatewayIdentityCreator } from './identity-creators';
+import { AttributeVerifier } from './attribute-verifier';
+import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store';
+import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store';
+import { MemoryAccessRights } from './access-rights';
+import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store';
+import { OAuthModel, MemoryTokenStore } from './oauth';
+import { defineSequelizeModels } from './sequelize/models';
 import { createApp } from './app'
 
 const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
@@ -19,8 +21,18 @@ const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 export async function main() : Promise<any> {   
   try {
-    const identityStore = new GatewayMemoryIdentityStore
-    const attributeStore = new MemoryAttributeStore()
+    const sequelize = new Sequelize('sqlite://')
+    await sequelize.authenticate()
+    
+    const sequelizeModels = defineSequelizeModels(sequelize)
+    await sequelize.sync()
+
+    const identityStore = new SequelizeGatewayIdentityStore({
+      identityModel: sequelizeModels.Identity
+    })
+    const attributeStore = new SequelizeAttributeStore({
+      attributeModel: sequelizeModels.Attribute
+    })
     const publicKeyRetriever = async (identity) => {
       return (await request(identity)).publicKey
     }
@@ -41,13 +53,17 @@ export async function main() : Promise<any> {
         tokenStore: new MemoryTokenStore()
       }),
       accessRights: new MemoryAccessRights(),
-      identityStore: new GatewayMemoryIdentityStore(),
+      identityStore: identityStore,
       attributeStore,
-      verificationStore: new MemoryVerificationStore({
+      verificationStore: new SequelizeVerificationStore({
+        attributeModel: sequelizeModels.Attribute,
+        verificationModel: sequelizeModels.Verification,
         attributeStore, publicKeyRetriever
       }),
       identityCreator: new GatewayIdentityCreator({
-        identityStore, privateKeyGenerator: new GatewayPrivateKeyGenerator()
+        identityStore,
+        privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
+        // privateKeyGenerator: new GatewayPrivateKeyGenerator(),
       }),
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
@@ -72,5 +88,5 @@ export async function main() : Promise<any> {
 
 
 if(require.main === module){
-  main();
+  main()
 }

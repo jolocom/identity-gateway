@@ -2,9 +2,9 @@ import * as _ from 'lodash'
 import * as Sequelize from 'sequelize'
 
 
-export function defineModels(sequelize) {
-  const models = {
-    Idenitity: {
+export function defineSequelizeModels(sequelize) {
+  const models : any = {
+    Identity: {
       userName: Sequelize.STRING,
       seedPhraseHash: Sequelize.TEXT,
       dataBackend: Sequelize.STRING,
@@ -23,11 +23,11 @@ export function defineModels(sequelize) {
     }
   }
 
-  for(let key of models) {
+  for(let key in models) {
     models[key] = sequelize.define(_.snakeCase(key), models[key])
   }
 
-  models.Attribute.belongsTo(models.Idenitity)
+  models.Attribute.belongsTo(models.Identity)
   models.Verification.belongsTo(models.Attribute)
 
   return models
