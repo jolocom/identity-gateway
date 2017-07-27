@@ -13,11 +13,14 @@ import * as http from 'http'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
 import { createApp } from './app'
+import * as openpgp from 'openpgp'
+openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
+
 
 const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 
-export async function main() : Promise<any> {   
+export async function main() : Promise<any> {
   try {
     const identityStore = new GatewayMemoryIdentityStore
     const attributeStore = new MemoryAttributeStore()
@@ -55,7 +58,7 @@ export async function main() : Promise<any> {
         verificationSender
       })
     })
-  
+
     const server = http.createServer(app)
     return await new Promise((resolve, reject) => {
       server.listen(process.env.IDENTITY_PORT || 4567, (err) => {

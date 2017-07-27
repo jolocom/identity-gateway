@@ -1,4 +1,3 @@
-import * as openpgp from 'openpgp'
 import { KeyPair } from './key-pair'
 import { gpg } from 'gpg'
 import fs = require('fs')
