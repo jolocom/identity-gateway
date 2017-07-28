@@ -16,11 +16,14 @@ import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './ide
 import { OAuthModel, MemoryTokenStore } from './oauth';
 import { defineSequelizeModels } from './sequelize/models';
 import { createApp } from './app'
+import * as openpgp from 'openpgp'
+openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
+
 
 const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 
-export async function main() : Promise<any> {   
+export async function main() : Promise<any> {
   try {
     const sequelize = new Sequelize('sqlite://')
     await sequelize.authenticate()
@@ -68,7 +71,7 @@ export async function main() : Promise<any> {
         verificationSender
       })
     })
-  
+
     const server = http.createServer(app)
     return await new Promise((resolve, reject) => {
       server.listen(process.env.IDENTITY_PORT || 4567, (err) => {
