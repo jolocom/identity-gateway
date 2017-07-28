@@ -1,51 +1,49 @@
 import { KeyPair } from './key-pair'
-import { gpg } from 'gpg'
-import fs = require('fs')
+import * as gpg from 'gpg'
+import * as tmp from 'tmp-promise'
+import * as bluebird from 'bluebird'
+import fs = require('mz/fs')
 
 export class GatewayPrivateKeyGenerator {
   async generate({name, email, passphrase} :
            {name : string, email : string, passphrase : string}) :
            Promise<KeyPair>
   {
+    const gpgCall = bluebird.promisify(gpg.call)
+    let publicKeyArmored, privateKeyArmored
 
-    await new Promise(function(resolve, reject) {
-      gpg.call(null, ['--batch', '--gen-key', 'script_file'], () => {
-        gpg.call(null, ['--enarmor', '/tmp/pub.key'], () => {
-          gpg.call(null, ['--enarmor', '/tmp/sec.key'], () => {
-            resolve()
-          })
-        })
-      })
-    })
+    await tmp.withDir(async tmpDir => {
+      const scriptContent = generateGPGScript({name, email, passphrase, tmpDirPath: tmpDir.path})
+      await fs.writeFile(`${tmpDir.path}/script`, scriptContent)
+      await gpgCall(null, ['--batch', '--gen-key', `${tmpDir.path}/script`])
+      await gpgCall(null, ['--enarmor', `${tmpDir.path}/pub.key`])
+      await gpgCall(null, ['--enarmor', `${tmpDir.path}/sec.key`])
 
-    let publicKeyArmored
-    await new Promise(function(resolve, reject) {
-      fs.readFile('/tmp.pub.key.asc', null , (err, data) => {
-        if (err) {
-          reject()
-        }
-        publicKeyArmored = data
-        resolve()
-      })
-    })
-
-    let privateKeyArmored
-    await new Promise(function(resolve, reject) {
-      fs.readFile('/tmp.sec.key.asc', null , (err, data) => {
-        if (err) {
-          reject()
-        }
-        privateKeyArmored = data
-        resolve()
-      })
-    })
+      publicKeyArmored = (await fs.readFile(`${tmpDir.path}/pub.key.asc`)).toString()
+      privateKeyArmored = (await fs.readFile(`${tmpDir.path}/sec.key.asc`)).toString()
+    }, {unsafeCleanup: true})
 
     return {
       publicKey: publicKeyArmored,
       privateKey: publicKeyArmored
     }
-
   }
+}
+
+export function generateGPGScript({name, email, passphrase, tmpDirPath}) {
+  return `
+Key-Type: 1
+Key-Length: 2048
+Subkey-Type: 1
+Subkey-Length: 2048
+Name-Real: ${name}
+Name-Email: ${email}
+Expire-Date: 0
+Passphrase: ${passphrase}
+%pubring ${tmpDirPath}/pub.key
+%secring ${tmpDirPath}/sec.key
+%commit
+`.trim()
 }
 
 export class DummyGatewayPrivateKeyGenerator {

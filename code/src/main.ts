@@ -62,8 +62,8 @@ export async function main() : Promise<any> {
       }),
       identityCreator: new GatewayIdentityCreator({
         identityStore,
-        privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
-        // privateKeyGenerator: new GatewayPrivateKeyGenerator(),
+        // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
+        privateKeyGenerator: new GatewayPrivateKeyGenerator(),
       }),
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),

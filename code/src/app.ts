@@ -83,15 +83,20 @@ export function createApp({accessRights, identityStore,
     // },
     '/:userName/access/grant': {
       post: async (req, res) => {
-        await accessRights.grant({
-          userID: req.user.id,
-          identity: req.body.identity,
-          oneTimeToken: req.body.oneTimeToken,
-          pattern: req.body.pattern,
-          read: req.body.read,
-          write: req.body.write,
-          expiryDate: req.body.expiryDate && moment(req.body.expiryDate)
-        })
+        const patterns = typeof req.body.pattern === 'string'
+          ? [req.body.pattern] : req.body.pattern
+
+        await Promise.all(patterns.map(async pattern => {
+          await accessRights.grant({
+            userID: req.user.id,
+            identity: req.body.identity,
+            oneTimeToken: req.body.oneTimeToken,
+            pattern: req.body.pattern,
+            read: req.body.read,
+            write: req.body.write,
+            expiryDate: req.body.expiryDate && moment(req.body.expiryDate)
+          })
+        }))
         res.send('OK')
       }
     },
