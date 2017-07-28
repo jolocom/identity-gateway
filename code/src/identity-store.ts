@@ -60,12 +60,12 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
     const seedPhraseHashObject = crypto.createHash('sha512')
     seedPhraseHashObject.update(seedPhrase)
     const seedPhraseHash = seedPhraseHashObject.digest('hex')
-    const identity = await this._identityModel.findOne({seedPhraseHash})
+    const identity = await this._identityModel.findOne({where: {seedPhraseHash}})
     return identity && identity.id
   }
   
   async getUserIdByUserName(userName) {
-    const identity = await this._identityModel.findOne({userName})
+    const identity = await this._identityModel.findOne({where: {userName}})
     return identity && identity.id
   }
 
@@ -73,7 +73,7 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
     const seedPhraseHashObject = crypto.createHash('sha512')
     seedPhraseHashObject.update(seedPhrase)
     const seedPhraseHash = seedPhraseHashObject.digest('hex')
-    const identity = await this._identityModel.findOne({seedPhraseHash})
+    const identity = await this._identityModel.findOne({where: {seedPhraseHash}})
 
     if (!identity) {
       return null

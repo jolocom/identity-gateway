@@ -2,33 +2,45 @@ import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
 const express = require('express')
-const OAuthServer = require('express-oauth-server')
-import { OAuthModel } from './oauth';
+const session = require('express-session')
+import * as passport from 'passport'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
 import { GatewayIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
 import { VerificationStore } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
+import { SessionStore } from './session-store';
+import { createCustomStrategy, setupSessionSerialization } from './passport';
 
-export function createApp({oAuthModel, accessRights, identityStore,
+export function createApp({accessRights, identityStore,
                            identityCreator, attributeStore, verificationStore,
-                           attributeVerifier} :
-                          {oAuthModel : OAuthModel, accessRights : AccessRights,
+                           attributeVerifier, sessionStore} :
+                          {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityCreator : GatewayIdentityCreator,
                            attributeStore : AttributeStore,
                            verificationStore : VerificationStore,
-                           attributeVerifier : AttributeVerifier})
+                           attributeVerifier : AttributeVerifier,
+                           sessionStore : SessionStore})
 {
   const app = express()
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
+  app.use(session({
+    secret: 'keyboard cat',
+    resave: false,
+    saveUninitialized: true
+  }))
+  app.use(passport.initialize())
+  app.use(passport.session())
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next()
   })
+  passport.use('custom', createCustomStrategy({identityStore}))
+  setupSessionSerialization(passport, {sessionStore})
   // app.use(async (req, res, next) => {
   //   try {
   //     console.log(111)
@@ -42,12 +54,7 @@ export function createApp({oAuthModel, accessRights, identityStore,
   //     console.trace()
   //   }
   // })
-  app.oauth = new OAuthServer({
-    model: oAuthModel,
-    grants: ['password']
-  })
-  app.all('/oauth/token', app.oauth.token())
-
+  
   app.get('/:userName', async (req, res) => {
     try {
       res.json({publicKey: (await identityStore.getPublicKeyByUserName(req.params.userName))})
@@ -154,9 +161,16 @@ export function createApp({oAuthModel, accessRights, identityStore,
     },
   }
 
+  app.post('/login',
+    passport.authenticate('custom', { failureRedirect: '/login' }),
+    function(req, res) {
+      res.send('OK')
+    }
+  )
+
   _.each(protectedRoutes, (methods, path) => {
     _.each(methods, (func, method) => {
-      app[method](path, app.oauth.authorize(), accessRightsMiddleware({
+      app[method](path, accessRightsMiddleware({
         accessRights, identityStore
       }), func)
     })
@@ -170,6 +184,10 @@ export function accessRightsMiddleware({accessRights, identityStore} :
                                         identityStore : GatewayIdentityStore})
 {
   return async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Not allowed')
+    }
+
     const userID = await identityStore.getUserIdByUserName(req.params.userName)
     if (req.user.id === userID) {
       return next()

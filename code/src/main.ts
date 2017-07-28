@@ -1,3 +1,4 @@
+import { MemorySessionStore } from './session-store';
 require('source-map-support').install()
 require('regenerator-runtime/runtime')
 import * as http from 'http'
@@ -47,11 +48,7 @@ export async function main() : Promise<any> {
       })
     }
     const app = createApp({
-      oAuthModel: new OAuthModel({
-        gatewayIdentityStore: identityStore,
-        publicKeyRetriever,
-        tokenStore: new MemoryTokenStore()
-      }),
+      sessionStore: new MemorySessionStore(),
       accessRights: new MemoryAccessRights(),
       identityStore: identityStore,
       attributeStore,
