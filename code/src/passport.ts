@@ -14,8 +14,7 @@ export function createCustomStrategy({identityStore}) {
       })
     } else {
       const userId = await identityStore.getUserIdBySeedPhrase(req.body.seedPhrase)
-      console.log(userId && {userId: userId})
-      callback(null, userId && {userId: userId})
+      callback(null, userId && {id: userId})
     }
   })
 }

@@ -111,14 +111,15 @@ export function createApp({accessRights, identityStore,
     '/:userName/identity/:attribute/:id': {
       get: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        res.json(await attributeStore.retrieveStringAttribute({
+        res.json(JSON.parse((await attributeStore.retrieveStringAttribute({
           userId, type: req.params.attribute, id: req.params.id
-        }))
+        })).value))
       },
       put: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
         await attributeStore.storeStringAttribute({
-          userId, type: req.params.attribute, id: req.params.id, value: req.body
+          userId, type: req.params.attribute, id: req.params.id,
+          value: typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
         })
         res.send('OK')
       }
@@ -192,7 +193,7 @@ export function accessRightsMiddleware({accessRights, identityStore} :
     if (req.user.id === userID) {
       return next()
     }
-    if (req.client && await accessRights.check({userID, identity: req.client, path: req.path})) {
+    if (req.client && await accessRights.check({userID, identity: req.user.identity, path: req.path})) {
       return next()
     }
     res.status(403).send('Access denied')

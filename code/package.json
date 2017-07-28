@@ -22,6 +22,7 @@
     "express": "^4.15.2",
     "express-oauth-server": "^2.0.0-b1",
     "express-session": "^1.15.4",
+    "gpg": "^0.6.0",
     "initd-forever": "^0.1.8",
     "lodash": "^4.6.1",
     "messagebird": "^2.1.1",

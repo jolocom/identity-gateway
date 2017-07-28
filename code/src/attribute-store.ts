@@ -75,7 +75,7 @@ export class SequelizeAttributeStore implements AttributeStore {
                              {userId : string, type : string, id : string, value : string})
   {
     await this._attributeModel.create({
-      userId, type, key: id, value
+      identityId: userId, type, key: id, value
     })
   }
 
@@ -106,9 +106,9 @@ export class SequelizeAttributeStore implements AttributeStore {
   }
 
   async listAttributes({userId, type}) : Promise<string[]> {
-    const attributes = await this._attributeModel.find({
-      userId, type
-    })
+    const attributes = await this._attributeModel.findAll({where: {
+      identityId: userId, type
+    }})
     return _(attributes)
       .map(attribute => attribute.key)
       .sort()
