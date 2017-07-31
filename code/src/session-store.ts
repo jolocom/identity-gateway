@@ -8,7 +8,6 @@ export class MemorySessionStore {
 
   async serializeUser(user) {
     this._sessions.push(user)
-    console.log('!!!', this._sessions)
     return (this._sessions.length).toString()
   }
 

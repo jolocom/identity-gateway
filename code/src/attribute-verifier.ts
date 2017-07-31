@@ -1,7 +1,16 @@
+import { GatewayIdentityStore } from './identity-store';
 import { DataSigner } from './data-signer'
 
-export type AttributeRetriever = ({identity, attrType, attrId}) => Promise<string>
-export type VerificationSender = ({identity, attrType, attrId, signature}) => Promise<any>
+export type AttributeRetriever = ({
+  sourceIdentity, sourceIdentitySignature,
+  identity, attrType, attrId
+}) => Promise<string>
+
+export type VerificationSender = ({
+  sourceIdentity, sourceIdentitySignature,
+  identity, attrType, attrId,
+  signature
+}) => Promise<any>
 
 export interface VerifierTransport {
   retrieveAttribute({identity, attrType, attrId}) : Promise<string>
@@ -23,16 +32,28 @@ export class AttributeVerifier {
     this._verificationSender = verificationSender
   }
 
-  async verifyAttribute({seedPhrase, identity, attrType, attrId, attrValue} :
-                        {seedPhrase : string, identity : string, attrType : string,
+  async verifyAttribute({seedPhrase, sourceIdentity,
+                         identity, attrType, attrId, attrValue} :
+                        {seedPhrase : string, sourceIdentity : string,
+                         identity : string, attrType : string,
                          attrId : string, attrValue : string})
   {
-    const retrievedAttribute = await this._attributeRetriever({identity, attrType, attrId})
+    const sourceIdentitySignature = this._dataSigner.signData({data: sourceIdentity, seedPhrase})
+
+    const retrievedAttribute = await this._attributeRetriever({
+      sourceIdentity, sourceIdentitySignature, identity, attrType, attrId
+    })
+    // console.log(2, '!!!')
     if (retrievedAttribute !== attrValue) {
       return false
     }
+    // console.log(3, '!!!')
 
     const signature = this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
-    return await this._verificationSender({identity, attrType, attrId, signature})
+    // console.log(4, '!!!')
+    await this._verificationSender({
+      sourceIdentity, sourceIdentitySignature, identity, attrType, attrId, signature
+    })
+    // console.log(5, '!!!')
   }
 }

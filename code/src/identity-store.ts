@@ -4,7 +4,7 @@ import { KeyPair } from './key-pair'
 
 export interface GatewayIdentityStore {
   storeIdentity({userName, seedPhrase, keyPair})
-  getUserIdBySeedPhrase(seedPhrase) : Promise<string>
+  getUserBySeedPhrase(seedPhrase) : Promise<{id, userName}>
   getUserIdByUserName(userName) : Promise<string>
   getKeyPairBySeedPhrase(seedPhrase) : Promise<KeyPair>
   getPublicKeyByUserName(userName) : Promise<string>
@@ -17,8 +17,11 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
     this.identities[seedPhrase] = {userName, keyPair}
   }
   
-  async getUserIdBySeedPhrase(seedPhrase) {
-    return this.identities[seedPhrase].userName
+  async getUserBySeedPhrase(seedPhrase) {
+    return {
+      id: this.identities[seedPhrase].userName,
+      userName: this.identities[seedPhrase].userName,
+    }
   }
   
   async getUserIdByUserName(userName) {
@@ -56,12 +59,15 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
     })
   }
   
-  async getUserIdBySeedPhrase(seedPhrase) {
+  async getUserBySeedPhrase(seedPhrase) {
     const seedPhraseHashObject = crypto.createHash('sha512')
     seedPhraseHashObject.update(seedPhrase)
     const seedPhraseHash = seedPhraseHashObject.digest('hex')
     const identity = await this._identityModel.findOne({where: {seedPhraseHash}})
-    return identity && identity.id
+    return identity && {
+      id: identity.id,
+      userName: identity.userName
+    }
   }
   
   async getUserIdByUserName(userName) {

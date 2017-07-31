@@ -1,20 +1,29 @@
+import { GatewayIdentityStore } from './identity-store';
 import * as openpgp from 'openpgp'
 import * as CustomStrategy from 'passport-custom'
 
-export function createCustomStrategy({identityStore}) {
+export type IdentityUrlBuilder = ({userName, req}) => string
+
+export function createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever} :
+                                     {identityStore : GatewayIdentityStore,
+                                      identityUrlBuilder : IdentityUrlBuilder,
+                                      publicKeyRetriever : (string) => Promise<string>}) {
   return new CustomStrategy(async (req, callback) => {
     if (req.body.identity) {
       const valid = await authenticateExternalIdentity({
         identity: req.body.identity, signature: req.body.signature,
-        publicKeyRetriever: this._publicKeyRetriever
+        publicKeyRetriever: publicKeyRetriever
       })
 
       callback(null, valid && {
         identity: req.body.identity
       })
     } else {
-      const userId = await identityStore.getUserIdBySeedPhrase(req.body.seedPhrase)
-      callback(null, userId && {id: userId})
+      const user = await identityStore.getUserBySeedPhrase(req.body.seedPhrase)
+      callback(null, user && {
+        id: user.id,
+        identity: identityUrlBuilder({userName: user.userName, req})
+      })
     }
   })
 }
@@ -30,7 +39,7 @@ export function setupSessionSerialization(passport, {sessionStore}) {
 }
 
 export async function authenticateExternalIdentity({identity, signature, publicKeyRetriever}) {
-  const armoredPublicKey = this._publicKeyRetriever(identity)
+  const armoredPublicKey = publicKeyRetriever(identity)
   const result = await openpgp.verify({
     message: openpgp.cleartext.readArmored(identity),
     signature: openpgp.signature.readArmored(signature),

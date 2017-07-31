@@ -45,6 +45,7 @@
     "source-map-support": "^0.4.0",
     "sqlite3": "^3.1.8",
     "tmp-promise": "^1.0.3",
+    "url-parse": "^1.1.9",
     "yargs": "^4.2.0"
   },
   "devDependencies": {

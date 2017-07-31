@@ -14,18 +14,19 @@ export class GatewayPrivateKeyGenerator {
 
     await tmp.withDir(async tmpDir => {
       const scriptContent = generateGPGScript({name, email, passphrase, tmpDirPath: tmpDir.path})
+      // console.log(scriptContent)
       await fs.writeFile(`${tmpDir.path}/script`, scriptContent)
-      await gpgCall(null, ['--batch', '--gen-key', `${tmpDir.path}/script`])
-      await gpgCall(null, ['--enarmor', `${tmpDir.path}/pub.key`])
-      await gpgCall(null, ['--enarmor', `${tmpDir.path}/sec.key`])
-
-      publicKeyArmored = (await fs.readFile(`${tmpDir.path}/pub.key.asc`)).toString()
-      privateKeyArmored = (await fs.readFile(`${tmpDir.path}/sec.key.asc`)).toString()
+      await gpgCall(null, ['--batch', '--gen-key', '-a', `${tmpDir.path}/script`])
+      
+      publicKeyArmored = (await fs.readFile(`${tmpDir.path}/pub.key`)).toString()
+      privateKeyArmored = (await fs.readFile(`${tmpDir.path}/sec.key`)).toString()
     }, {unsafeCleanup: true})
+
+    // console.log('generated private key', name, passphrase, privateKeyArmored)
 
     return {
       publicKey: publicKeyArmored,
-      privateKey: publicKeyArmored
+      privateKey: privateKeyArmored
     }
   }
 }

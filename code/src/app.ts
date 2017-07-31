@@ -11,17 +11,19 @@ import { AttributeStore } from './attribute-store'
 import { VerificationStore } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { SessionStore } from './session-store';
-import { createCustomStrategy, setupSessionSerialization } from './passport';
+import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport';
 
-export function createApp({accessRights, identityStore,
+export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, attributeStore, verificationStore,
-                           attributeVerifier, sessionStore} :
+                           attributeVerifier, sessionStore, publicKeyRetriever} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
+                           identityUrlBuilder : IdentityUrlBuilder,
                            identityCreator : GatewayIdentityCreator,
                            attributeStore : AttributeStore,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
+                           publicKeyRetriever : (string) => Promise<string>,
                            sessionStore : SessionStore})
 {
   const app = express()
@@ -39,7 +41,7 @@ export function createApp({accessRights, identityStore,
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next()
   })
-  passport.use('custom', createCustomStrategy({identityStore}))
+  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
   setupSessionSerialization(passport, {sessionStore})
   // app.use(async (req, res, next) => {
   //   try {
@@ -83,8 +85,9 @@ export function createApp({accessRights, identityStore,
     // },
     '/:userName/access/grant': {
       post: async (req, res) => {
-        const patterns = typeof req.body.pattern === 'string'
-          ? [req.body.pattern] : req.body.pattern
+        const body = req.body
+        const patterns = typeof body.pattern === 'string'
+          ? [body.pattern] : body.pattern
 
         await Promise.all(patterns.map(async pattern => {
           await accessRights.grant({
@@ -157,8 +160,10 @@ export function createApp({accessRights, identityStore,
     '/:userName/sign': {
       post: async (req, res) => {
         attributeVerifier.verifyAttribute({
+          sourceIdentity: req.user.identity,
           seedPhrase: req.body.seedPhrase,
-          attrType: req.body.attributeType, attrId: req.body.attributeId,
+          attrType: req.body.attributeType,
+          attrId: req.body.attributeId,
           attrValue: req.body.attributeValue,
           identity: req.body.identity
         })
