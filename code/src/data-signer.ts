@@ -16,14 +16,12 @@ export class DataSigner {
       return null
     }
     
-    // console.log(11, seedPhrase)
     const result = await openpgp.sign({
         data,
         privateKeys: privKeyObj,
         detached: true
     })
-    // console.log(22)
-
+    
     return result.signature
   }
 }

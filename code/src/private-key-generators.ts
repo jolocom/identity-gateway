@@ -1,5 +1,6 @@
 import { KeyPair } from './key-pair'
 import * as gpg from 'gpg'
+import * as openpgp from 'openpgp'
 import * as tmp from 'tmp-promise'
 import * as bluebird from 'bluebird'
 import fs = require('mz/fs')
@@ -9,20 +10,31 @@ export class GatewayPrivateKeyGenerator {
            {name : string, email : string, passphrase : string}) :
            Promise<KeyPair>
   {
-    const gpgCall = bluebird.promisify(gpg.call)
-    let publicKeyArmored, privateKeyArmored
+    // const gpgCall = bluebird.promisify(gpg.call)
+    // let publicKeyArmored, privateKeyArmored
 
-    await tmp.withDir(async tmpDir => {
-      const scriptContent = generateGPGScript({name, email, passphrase, tmpDirPath: tmpDir.path})
-      // console.log(scriptContent)
-      await fs.writeFile(`${tmpDir.path}/script`, scriptContent)
-      await gpgCall(null, ['--batch', '--gen-key', '-a', `${tmpDir.path}/script`])
+    // await tmp.withDir(async tmpDir => {
+    //   const scriptContent = generateGPGScript({name, email, passphrase, tmpDirPath: tmpDir.path})
+    //   await fs.writeFile('/tmp/gpg_script', scriptContent)
+    //   await fs.writeFile(`${tmpDir.path}/script`, scriptContent)
+    //   await gpgCall(null, ['--batch', '--gen-key', '-a', `${tmpDir.path}/script`])
+    //   await require('fs-extra').copy(`${tmpDir.path}/sec.key`, '/tmp/bla.key')
+    //   if (1) return
       
-      publicKeyArmored = (await fs.readFile(`${tmpDir.path}/pub.key`)).toString()
-      privateKeyArmored = (await fs.readFile(`${tmpDir.path}/sec.key`)).toString()
-    }, {unsafeCleanup: true})
+    //   publicKeyArmored = (await fs.readFile(`${tmpDir.path}/pub.key`)).toString()
+    //   privateKeyArmored = (await fs.readFile(`${tmpDir.path}/sec.key`)).toString()
+    // }, {unsafeCleanup: true})
 
     // console.log('generated private key', name, passphrase, privateKeyArmored)
+    // await fs.writeFile('/tmp/priv.key', privateKeyArmored)
+
+    var options = {
+        userIds: [{ name, email }],
+        numBits: process.env.PRIV_KEY_SIZE ? parseInt(process.env.PRIV_KEY_SIZE) : 2048,
+        passphrase: passphrase
+    };
+
+    const {publicKeyArmored, privateKeyArmored} = await openpgp.generateKey(options)
 
     return {
       publicKey: publicKeyArmored,
