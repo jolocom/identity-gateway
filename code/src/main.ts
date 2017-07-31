@@ -45,26 +45,26 @@ export async function main() : Promise<any> {
       attributeModel: sequelizeModels.Attribute
     })
     const publicKeyRetriever = async (identity) => {
-      return (await request(identity)).publicKey
+      return JSON.parse((await request(identity))).publicKey
     }
-    const attributeRetriever = async ({sourceIdentity, identity, attrType, attrId}) => {
+    const attributeRetriever = async ({sourceIdentity, sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
-        form: {identity: sourceIdentity}
+        form: {identity: sourceIdentity, signature: sourceIdentitySignature}
       })
       
       return (await req(`${identity}/identity/${attrType}/${attrId}`))
     }
-    const verificationSender = async ({sourceIdentity, identity, attrType, attrId, signature}) => {
+    const verificationSender = async ({sourceIdentity, sourceIdentitySignature, identity, attrType, attrId, signature}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
-        body: JSON.stringify({"identity": sourceIdentity})
+        body: JSON.stringify({identity: sourceIdentity, signature: sourceIdentitySignature})
       })
       await request({
         method: 'PUT',

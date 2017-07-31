@@ -38,22 +38,23 @@ export class AttributeVerifier {
                          identity : string, attrType : string,
                          attrId : string, attrValue : string})
   {
-    const sourceIdentitySignature = this._dataSigner.signData({data: sourceIdentity, seedPhrase})
+    const sourceIdentitySignature = await this._dataSigner.signData({data: sourceIdentity, seedPhrase})
 
+    console.log(1, '!!!')
     const retrievedAttribute = await this._attributeRetriever({
       sourceIdentity, sourceIdentitySignature, identity, attrType, attrId
     })
-    // console.log(2, '!!!')
+    console.log(2, '!!!')
     if (retrievedAttribute !== attrValue) {
       return false
     }
-    // console.log(3, '!!!')
+    console.log(3, '!!!')
 
     const signature = this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
-    // console.log(4, '!!!')
+    console.log(4, '!!!')
     await this._verificationSender({
       sourceIdentity, sourceIdentitySignature, identity, attrType, attrId, signature
     })
-    // console.log(5, '!!!')
+    console.log(5, '!!!')
   }
 }
