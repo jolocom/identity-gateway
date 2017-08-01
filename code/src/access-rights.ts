@@ -49,7 +49,9 @@ export class MemoryAccessRights implements AccessRights {
       .filter(rule => minimatch(path, rule.pattern))
       .valueOf()
 
-    this.rules = _.filter(this.rules, rule => !rule.oneTimeToken)
+    if (oneTimeToken) {
+      this.rules = _.filter(this.rules, rule => rule.oneTimeToken !== oneTimeToken)
+    }
 
     return {
       read: _.some(identityRules, rule => rule.read),
