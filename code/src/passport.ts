@@ -39,11 +39,15 @@ export function setupSessionSerialization(passport, {sessionStore}) {
 }
 
 export async function authenticateExternalIdentity({identity, signature, publicKeyRetriever}) {
-  const armoredPublicKey = await publicKeyRetriever(identity)
+  const identityCleartext = openpgp.cleartext.readArmored(identity)
+  const identityURL = identityCleartext.text
+  const armoredPublicKey = await publicKeyRetriever(identityURL)
+  // console.log(' | ', identity, ' | ', signature, ' | ', armoredPublicKey)
   const result = await openpgp.verify({
-    message: openpgp.cleartext.readArmored(identity),
+    message: identityCleartext,
     signature: openpgp.signature.readArmored(signature),
     publicKeys: openpgp.key.readArmored(armoredPublicKey).keys
   })
+  console.log(2, '!?', result.signatures)
   return result.signatures[0].valid
 }

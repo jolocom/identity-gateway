@@ -82,9 +82,9 @@ export class SequelizeVerificationStore extends VerificationStore {
   }
 
   async storeVerification({userId, attrType, attrId, verifierIdentity, signature}) {
-    const attribute = await this._attributeModel.findOne({
-      userId, type: attrType, key: attrId,
-    })
+    const attribute = await this._attributeModel.findOne({where: {
+      identityId: userId, type: attrType, key: attrId,
+    }})
     const verification = await this._verificationModel.create({
       attributeId: attribute.id,
       identity: verifierIdentity,
@@ -97,9 +97,9 @@ export class SequelizeVerificationStore extends VerificationStore {
     const attribute = await this._attributeModel.findOne({
       userId, type: attrType, key: attrId,
     })
-    const verificationRecords = await this._verificationModel.find({
+    const verificationRecords = await this._verificationModel.findAll({where: {
       attributeId: attribute.id
-    })
+    }})
 
     const verifications = {}
     verificationRecords.forEach(verification => {
