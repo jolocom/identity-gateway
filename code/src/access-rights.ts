@@ -96,10 +96,14 @@ export class SequelizeAccessRights implements AccessRights {
       .filter(rule => minimatch(path, rule.pattern))
       .valueOf()
 
-      return {
-        read: _.some(identityRules, rule => rule.read),
-        write: _.some(identityRules, rule => rule.write)
-      }
+    if (oneTimeToken) {
+      await this._ruleModel.delete({where: {oneTimeToken}})
+    }
+
+    return {
+      read: _.some(identityRules, rule => rule.read),
+      write: _.some(identityRules, rule => rule.write)
+    }
   }
 
   _getNow() {
