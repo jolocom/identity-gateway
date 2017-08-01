@@ -20,6 +20,14 @@ export function defineSequelizeModels(sequelize) {
     Verification: {
       identity: Sequelize.STRING,
       signature: Sequelize.TEXT,
+    },
+    Rules: {
+      identity: Sequelize.STRING,
+      pattern : Sequelize.STRING,
+      read: Sequelize.BOOLEAN,
+      write: Sequelize.BOOLEAN,
+      expiryDate: Sequelize.DATE,
+      oneTimeToken: Sequelize.STRING
     }
   }
 
@@ -29,6 +37,7 @@ export function defineSequelizeModels(sequelize) {
 
   models.Attribute.belongsTo(models.Identity)
   models.Verification.belongsTo(models.Attribute)
+  models.Rules.belongsTo(models.Identity)
 
   return models
 }
