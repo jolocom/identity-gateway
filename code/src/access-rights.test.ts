@@ -1,6 +1,8 @@
 import * as moment from 'moment'
 import { expect } from 'chai'
-import { MemoryAccessRights } from './access-rights'
+import { MemoryAccessRights, SequelizeAccessRights } from './access-rights'
+import * as Sequelize from 'sequelize'
+import { defineSequelizeModels } from './sequelize/models'
 
 function testAccessRights({accessRights}) {
   it('should be able to modify and test access rights', async () => {
@@ -18,7 +20,7 @@ function testAccessRights({accessRights}) {
       read: true, write: false
     })
   })
-  
+
   it('should be able to grant temporary access', async () => {
     await accessRights.grant({
       identity: 'https://identity.test.com', pattern: '/identity/passport/*',
@@ -50,6 +52,24 @@ describe('Memory access rights', () => {
 
   beforeEach(() => {
     accessRights.clear()
+  })
+
+  testAccessRights({accessRights})
+})
+
+describe('Sequelize access rights', async () => {
+  const sequelize = new Sequelize('sqlite://')
+  await sequelize.authenticate()
+
+  const sequelizeModels = defineSequelizeModels(sequelize)
+  await sequelize.sync()
+  const accessRights = new SequelizeAccessRights(
+    {ruleModel: sequelizeModels.Rules})
+  let dummyNow = moment({year: 2017, month: 7, day: 7, hour: 10})
+  accessRights._getNow = () => dummyNow
+
+  beforeEach(async () => {
+    await sequelizeModels.Rules.Delete()
   })
 
   testAccessRights({accessRights})
