@@ -48,6 +48,5 @@ export async function authenticateExternalIdentity({identity, signature, publicK
     signature: openpgp.signature.readArmored(signature),
     publicKeys: openpgp.key.readArmored(armoredPublicKey).keys
   })
-  console.log(2, '!?', result.signatures)
   return result.signatures[0].valid
 }

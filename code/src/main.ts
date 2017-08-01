@@ -1,6 +1,8 @@
+import { AttributeChecker } from './attribute-checker';
 import { MemorySessionStore } from './session-store';
 require('source-map-support').install()
 require('regenerator-runtime/runtime')
+import * as _ from 'lodash'
 import * as URL from 'url-parse'
 import * as http from 'http'
 import * as bluebird from 'bluebird'
@@ -59,6 +61,22 @@ export async function main() : Promise<any> {
       
       return (await req(`${identity}/identity/${attrType}/${attrId}`))
     }
+    const verificationsRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
+      const cookieJar = request.jar()
+      const req = request.defaults({jar: cookieJar})
+      
+      await req({
+        method: 'POST',
+        uri: new URL(identity).origin + '/login',
+        form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
+      })
+      
+      return _.map(JSON.parse(await req(`${identity}/identity/${attrType}/${attrId}/verifications`)),
+        (verification, id) => {
+          return {...verification, id}
+        }
+      )
+    }
     const verificationSender = async ({sourceIdentitySignature, identity, attrType, attrId, signature}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
@@ -97,6 +115,12 @@ export async function main() : Promise<any> {
         dataSigner: new DataSigner({identityStore}),
         attributeRetriever,
         verificationSender
+      }),
+      attributeChecker: new AttributeChecker({
+        dataSigner: new DataSigner({identityStore}),
+        publicKeyRetriever,
+        attributeRetriever,
+        verificationsRetriever
       })
     })
 

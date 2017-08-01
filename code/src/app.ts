@@ -174,15 +174,15 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
       }
     },
     '/:userName/check': {
-      get: async (req, res) => {
-        await attributeChecker.checkAttribute({
+      post: async (req, res) => {
+        res.json(await attributeChecker.checkAttribute({
           sourceIdentity: req.user.identity,
+          seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
           attrValue: JSON.stringify(req.body.attributeValue),
           identity: req.body.identity
-        })
-        res.send('OK')
+        }))
       }
     },
   }
