@@ -47,29 +47,33 @@ export async function main() : Promise<any> {
     const publicKeyRetriever = async (identity) => {
       return JSON.parse((await request(identity))).publicKey
     }
-    const attributeRetriever = async ({sourceIdentity, sourceIdentitySignature, identity, attrType, attrId}) => {
+    const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
+      
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
-        form: {identity: sourceIdentity, signature: sourceIdentitySignature}
+        form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
       
       return (await req(`${identity}/identity/${attrType}/${attrId}`))
     }
-    const verificationSender = async ({sourceIdentity, sourceIdentitySignature, identity, attrType, attrId, signature}) => {
+    const verificationSender = async ({sourceIdentitySignature, identity, attrType, attrId, signature}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
-        body: JSON.stringify({identity: sourceIdentity, signature: sourceIdentitySignature})
+        form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      await request({
+      await req({
         method: 'PUT',
-        uri: `${identity}/identity/${attrType}/${attrId}`,
-        body: signature
+        uri: `${identity}/identity/${attrType}/${attrId}/verifications`,
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        body: signature.signature
       })
     }
     const app = createApp({

@@ -10,12 +10,13 @@ import { GatewayIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
 import { VerificationStore } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
-import { SessionStore } from './session-store';
-import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport';
+import { AttributeChecker } from './attribute-checker'
+import { SessionStore } from './session-store'
+import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, attributeStore, verificationStore,
-                           attributeVerifier, sessionStore, publicKeyRetriever} :
+                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
@@ -23,12 +24,14 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeStore : AttributeStore,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
+                           attributeChecker : AttributeChecker,
                            publicKeyRetriever : (string) => Promise<string>,
                            sessionStore : SessionStore})
 {
   const app = express()
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
+  app.use(bodyParser.text())
   app.use(session({
     secret: 'keyboard cat',
     resave: false,
@@ -143,7 +146,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const verificationId = await verificationStore.storeVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
-          verifierIdentity: req.client.id, signature: req.body
+          verifierIdentity: req.user.identity, signature: req.body
         })
         res.json({verificationId})
       }
@@ -157,14 +160,26 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
         }))
       }
     },
-    '/:userName/sign': {
+    '/:userName/verify': {
       post: async (req, res) => {
-        attributeVerifier.verifyAttribute({
+        await attributeVerifier.verifyAttribute({
           sourceIdentity: req.user.identity,
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
-          attrValue: req.body.attributeValue,
+          attrValue: JSON.stringify(req.body.attributeValue),
+          identity: req.body.identity
+        })
+        res.send('OK')
+      }
+    },
+    '/:userName/check': {
+      get: async (req, res) => {
+        await attributeChecker.checkAttribute({
+          sourceIdentity: req.user.identity,
+          attrType: req.body.attributeType,
+          attrId: req.body.attributeId,
+          attrValue: JSON.stringify(req.body.attributeValue),
           identity: req.body.identity
         })
         res.send('OK')

@@ -80,24 +80,22 @@ export class SequelizeAttributeStore implements AttributeStore {
   }
 
   async retrieveStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
-    const attribute = await this._attributeModel.findOne({
-      userId, type, key: id,
-    })
+    const attribute = await this._attributeModel.findOne({where: {
+      identityId: userId, type, key: id,
+    }})
     return {value: attribute.value}
   }
 
   async deleteStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
     await this._attributeModel.delete({where: {
-      userId,
+      identityId: userId,
       type,
       key: id,
     }})
   }
 
   async listAttributeTypes({userId}) : Promise<string[]> {
-    const attributes = await this._attributeModel.find({
-      userId
-    })
+    const attributes = await this._attributeModel.find({where: {identityId: userId}})
     return _(attributes)
       .map(attribute => attribute.type)
       .sort()

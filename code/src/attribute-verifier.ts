@@ -2,12 +2,12 @@ import { GatewayIdentityStore } from './identity-store';
 import { DataSigner } from './data-signer'
 
 export type AttributeRetriever = ({
-  sourceIdentity, sourceIdentitySignature,
+  sourceIdentitySignature,
   identity, attrType, attrId
 }) => Promise<string>
 
 export type VerificationSender = ({
-  sourceIdentity, sourceIdentitySignature,
+  sourceIdentitySignature,
   identity, attrType, attrId,
   signature
 }) => Promise<any>
@@ -40,21 +40,16 @@ export class AttributeVerifier {
   {
     const sourceIdentitySignature = await this._dataSigner.signData({data: sourceIdentity, seedPhrase})
 
-    console.log(1, '!!!')
     const retrievedAttribute = await this._attributeRetriever({
-      sourceIdentity, sourceIdentitySignature, identity, attrType, attrId
+      sourceIdentitySignature, identity, attrType, attrId
     })
-    console.log(2, '!!!')
     if (retrievedAttribute !== attrValue) {
       return false
     }
-    console.log(3, '!!!')
-
-    const signature = this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
-    console.log(4, '!!!')
+    
+    const signature = await this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
     await this._verificationSender({
-      sourceIdentity, sourceIdentitySignature, identity, attrType, attrId, signature
+      sourceIdentitySignature, identity, attrType, attrId, signature
     })
-    console.log(5, '!!!')
   }
 }

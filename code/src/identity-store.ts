@@ -92,7 +92,7 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
   }
 
   async getPublicKeyByUserName(userName) : Promise<string> {
-    const identity = await this._identityModel.findOne({userName})
+    const identity = await this._identityModel.findOne({where: {userName}})
     return identity && identity.publicKey
   }
 }
