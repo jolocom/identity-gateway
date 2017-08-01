@@ -27,11 +27,13 @@ const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 export async function main() : Promise<any> {
   try {
-    const sequelize = new Sequelize('sqlite://')
+    const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://')
     await sequelize.authenticate()
     
     const sequelizeModels = defineSequelizeModels(sequelize)
-    await sequelize.sync()
+    if (DEVELOPMENT_MODE || process.env.SYNC === 'true') {
+      await sequelize.sync()
+    }
 
     const identityUrlBuilder = ({userName, req}) => {
       if (DEVELOPMENT_MODE) {
