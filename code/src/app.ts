@@ -40,8 +40,9 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
   app.use(passport.initialize())
   app.use(passport.session())
   app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Origin", req.get('Origin'))
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+    res.header("Access-Control-Allow-Credentials", "true")
     next()
   })
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
@@ -62,7 +63,12 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
   
   app.get('/:userName', async (req, res) => {
     try {
-      res.json({publicKey: (await identityStore.getPublicKeyByUserName(req.params.userName))})
+      const publicKey = await identityStore.getPublicKeyByUserName(req.params.userName)
+      if (publicKey) {
+        res.json({publicKey})
+      } else {
+        res.status(404).send('User not found')
+      }
     } catch(e) {
       console.error(e)
       console.trace()
