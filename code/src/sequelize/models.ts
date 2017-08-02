@@ -22,7 +22,7 @@ export function defineSequelizeModels(sequelize) {
       signature: Sequelize.TEXT,
     },
     Rules: {
-      identity: Sequelize.STRING,
+      requester: Sequelize.STRING,
       pattern : Sequelize.STRING,
       read: Sequelize.BOOLEAN,
       write: Sequelize.BOOLEAN,
@@ -37,7 +37,7 @@ export function defineSequelizeModels(sequelize) {
 
   models.Attribute.belongsTo(models.Identity)
   models.Verification.belongsTo(models.Attribute)
-  models.Rules.belongsTo(models.Identity, {foreignKey: 'identityId'})
+  models.Rules.belongsTo(models.Identity)
 
   return models
 }

@@ -77,7 +77,7 @@ export class SequelizeAccessRights implements AccessRights {
               })
   {
     await this._ruleModel.create({
-      identityId: userID, identity, pattern, read, write, expiryDate, oneTimeToken
+      identityId: userID, requester: identity, pattern, read, write, expiryDate, oneTimeToken
     })
   }
 
@@ -86,11 +86,11 @@ export class SequelizeAccessRights implements AccessRights {
     Promise<{read : boolean, write : boolean}>
   {
     let identityRules = await this._ruleModel.findAll({where: {
-      identityId: userID
+      identityId: userID,
+      requester: identity
     }})
     identityRules = _(identityRules)
       .map((rule, idx) => ({...rule, idx}))
-      .filter(rule => rule.identity === identity)
       .filter(rule => !rule.token || rule.token === oneTimeToken)
       .filter(rule => !rule.expiryDate || rule.expiryDate.isAfter(this._getNow()))
       .filter(rule => minimatch(path, rule.pattern))
