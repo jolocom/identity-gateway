@@ -22,6 +22,7 @@ export function createCustomStrategy({identityStore, identityUrlBuilder, publicK
       const user = await identityStore.getUserBySeedPhrase(req.body.seedPhrase)
       callback(null, user && {
         id: user.id,
+        userName: user.userName,
         identity: identityUrlBuilder({userName: user.userName, req})
       })
     }

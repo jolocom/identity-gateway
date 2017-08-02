@@ -190,7 +190,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
   app.post('/login',
     passport.authenticate('custom', { failureRedirect: '/login' }),
     function(req, res) {
-      res.send('OK')
+      res.json({userName: req.user.userName})
     }
   )
 
