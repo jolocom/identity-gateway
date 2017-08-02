@@ -37,7 +37,7 @@ export function defineSequelizeModels(sequelize) {
 
   models.Attribute.belongsTo(models.Identity)
   models.Verification.belongsTo(models.Attribute)
-  models.Rules.belongsTo(models.Identity)
+  models.Rules.belongsTo(models.Identity, {foreignKey: 'identityId'})
 
   return models
 }
