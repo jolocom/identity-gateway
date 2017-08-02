@@ -3,6 +3,7 @@ import * as moment from 'moment'
 const bodyParser = require('body-parser')
 const express = require('express')
 const session = require('express-session')
+const uuid = require('uuid/v1')
 import * as passport from 'passport'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
@@ -43,6 +44,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
     res.header("Access-Control-Allow-Origin", req.get('Origin'))
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     res.header("Access-Control-Allow-Credentials", "true")
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
     next()
   })
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
@@ -123,6 +125,14 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
         res.json(await attributeStore.listAttributes({
           userId, type: req.params.attribute
         }))
+      },
+      put: async (req, res) => {
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        await attributeStore.storeStringAttribute({
+          userId, type: req.params.attribute, id: uuid(),
+          value: typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
+        })
+        res.send('OK')
       }
     },
     '/:userName/identity/:attribute/:id': {
@@ -190,7 +200,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
           identity: req.body.identity
         }))
       }
-    },
+    }
   }
 
   app.post('/login',
