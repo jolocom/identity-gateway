@@ -32,7 +32,6 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            sessionStore : SessionStore})
 {
 const app = express()
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   app.use(session({
     secret: 'keyboard cat',
     resave: false,
