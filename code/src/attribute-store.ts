@@ -74,9 +74,12 @@ export class SequelizeAttributeStore implements AttributeStore {
   async storeStringAttribute({userId, type, id, value} :
                              {userId : string, type : string, id : string, value : string})
   {
-    await this._attributeModel.create({
-      identityId: userId, type, key: id, value
-    })
+    const [obj, created] = await this._attributeModel.findOrCreate({where: {
+      identityId: userId, type, key: id
+    }, defaults: {value}})
+    if (!created) {
+      await obj.update({value})
+    }
   }
 
   async retrieveStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
