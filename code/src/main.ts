@@ -37,7 +37,7 @@ export async function main() : Promise<any> {
 
     const identityUrlBuilder = ({userName, req}) => {
       if (DEVELOPMENT_MODE) {
-        return `http://localhost:4567/${userName}`
+        return `http://localhost:5678/${userName}`
       } else {
         return `https://identity.jolocom.com/${userName}`
       }

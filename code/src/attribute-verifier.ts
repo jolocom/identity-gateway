@@ -43,9 +43,11 @@ export class AttributeVerifier {
     const retrievedAttribute = await this._attributeRetriever({
       sourceIdentitySignature, identity, attrType, attrId
     })
+    // console.log(1, '!!!', retrievedAttribute, attrValue)
     if (retrievedAttribute !== attrValue) {
       return false
     }
+    // console.log(2, '!!!')
     
     const signature = await this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
     await this._verificationSender({

@@ -178,12 +178,13 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
     },
     '/:userName/verify': {
       post: async (req, res) => {
+        console.log('!?!?!?!? verify for ', req.params.userName, req.user.identity)
         await attributeVerifier.verifyAttribute({
           sourceIdentity: req.user.identity,
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
-          attrValue: JSON.stringify(req.body.attributeValue),
+          attrValue: req.body.attributeValue,
           identity: req.body.identity
         })
         res.send('OK')

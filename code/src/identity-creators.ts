@@ -40,7 +40,14 @@ export class SolidIdentityCreator {
 }
 
 export class EthereumIdentityCreator {
-  createIdentity({seedPhrase}) {
+  private _walletManager
+  private _jolocomEtherURL
+
+  constructor({walletManager, jolocomEtherURL}) {
+    this._walletManager = walletManager
+  }
+
+  createIdentity({seedPhrase, publicKey, identityURL}) {
 
   }
 }
