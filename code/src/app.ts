@@ -62,7 +62,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
   //     console.trace()
   //   }
   // })
-  
+
   app.get('/:userName', async (req, res) => {
     try {
       const publicKey = await identityStore.getPublicKeyByUserName(req.params.userName)
@@ -149,6 +149,12 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
           value: typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
         })
         res.send('OK')
+      },
+      delete: async (req, res) => {
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        await attributeStore.deleteStringAttribute({
+          userId, type: req.params.attribute, id: req.params.id
+        })
       }
     },
     '/:userName/identity/:attribute/:id/verifications': {
