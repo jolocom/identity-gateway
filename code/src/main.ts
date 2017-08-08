@@ -128,7 +128,7 @@ export async function main() : Promise<any> {
 
     const server = http.createServer(app)
     return await new Promise((resolve, reject) => {
-      server.listen(parseInt(process.env.IDENTITY_PORT) || 4567, (err) => {
+      server.listen(parseInt(process.env.IDENTITY_PORT) || 5678, (err) => {
         if (err) { return reject(err) }
         resolve(server)
       })
