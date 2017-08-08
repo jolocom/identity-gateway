@@ -155,6 +155,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
         await attributeStore.deleteStringAttribute({
           userId, type: req.params.attribute, id: req.params.id
         })
+        res.send('OK')
       }
     },
     '/:userName/identity/:attribute/:id/verifications': {
