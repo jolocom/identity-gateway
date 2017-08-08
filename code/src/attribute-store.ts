@@ -90,7 +90,7 @@ export class SequelizeAttributeStore implements AttributeStore {
   }
 
   async deleteStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
-    await this._attributeModel.delete({where: {
+    await this._attributeModel.destroy({where: {
       identityId: userId,
       type,
       key: id,
