@@ -2,9 +2,11 @@ import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
 const express = require('express')
+const request = require('request');
 const session = require('express-session')
 const uuid = require('uuid/v1')
 import * as passport from 'passport'
+import * as URL from 'url-parse'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
 import { GatewayIdentityCreator } from './identity-creators'
@@ -29,10 +31,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetriever : (string) => Promise<string>,
                            sessionStore : SessionStore})
 {
-  const app = express()
-  app.use(bodyParser.urlencoded({extended: true}))
-  app.use(bodyParser.json())
-  app.use(bodyParser.text())
+const app = express()
   app.use(session({
     secret: 'keyboard cat',
     resave: false,
@@ -40,6 +39,25 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
   }))
   app.use(passport.initialize())
   app.use(passport.session())
+  app.use('/proxy/', accessRightsMiddleware({ accessRights, identityStore }),
+    async (req, res) => {
+      const destination = req.query.url
+      const sourceIdentity = req.user.identity
+
+      const cookieJar = request.jar()
+      const reqst = request.defaults({jar: cookieJar})
+
+      await reqst({
+        method: 'POST',
+        uri: new URL(destination).origin + '/login',
+        body: JSON.stringify({"identity": sourceIdentity})
+      })
+      req.pipe(request({ qs:req.query, uri: req.query.url })).pipe(res);
+  })
+
+  app.use(bodyParser.urlencoded({extended: true}))
+  app.use(bodyParser.json())
+  app.use(bodyParser.text())
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", req.get('Origin'))
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
