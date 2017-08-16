@@ -5,7 +5,7 @@
   "main": "build/main.js",
   "scripts": {
     "start": "npm run prepare && npm run dev --",
-    "dev": "NODE_ENV=dev node build/main.js",
+    "dev": "better-npm-run build:dev",
     "devmon": "better-npm-run build:devmon",
     "prepare": "tsc",
     "prepare:watch": "tsc --watch",
@@ -16,6 +16,12 @@
   "betterScripts": {
     "build:devmon": {
       "command":"nodemon --watch build build/main.js",
+      "env": {
+        "NODE_ENV":"dev"
+      }
+    },
+    "build:dev": {
+      "command":"node build/main.js",
       "env": {
         "NODE_ENV":"dev"
       }
