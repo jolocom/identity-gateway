@@ -5,6 +5,7 @@ require('regenerator-runtime/runtime')
 import * as _ from 'lodash'
 import * as URL from 'url-parse'
 import * as http from 'http'
+import { spawnSync } from 'child_process'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
 import * as Sequelize from 'sequelize'
@@ -127,19 +128,59 @@ export async function main() : Promise<any> {
     })
 
     const server = http.createServer(app)
-    return await new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       server.listen(parseInt(process.env.IDENTITY_PORT) || 5678, (err) => {
         if (err) { return reject(err) }
         resolve(server)
       })
     })
 
+    if (DEVELOPMENT_MODE) {
+      await devPostInit()
+    }
+
+    return server
   } catch (e) {
     console.error(e)
     console.trace()
   }
 }
 
+async function devPostInit() {
+  const gatewayURL = 'http://localhost:' + (process.env.IDENTITY_PORT || '5678')
+  const firstUserSeedPhrase = process.env.FIRST_USER_SEED_PHRASE || 'user1 seed phrase'
+  const secondUserSeedPhrase = process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
+  const createSecondUser = process.env.SECOND_USER_SEED_PHRASE || process.env.CREATE_SECOND_USER === 'true'
+  
+  const cookieJar_1 = request.jar()
+  const session_1 = request.defaults({jar: cookieJar_1})
+  const cookieJar_2 = request.jar()
+  const session_2 = request.defaults({jar: cookieJar_2})
+  
+  await session_1({
+    method: 'PUT',
+    uri: gatewayURL + '/register',
+    form: {seedPhrase: firstUserSeedPhrase}
+  })
+  await session_1({
+    method: 'PUT',
+    uri: gatewayURL + '/login',
+    form: {seedPhrase: firstUserSeedPhrase}
+  })
+
+  if (createSecondUser) {
+    await session_2({
+      method: 'POST',
+      uri: gatewayURL + '/register',
+      form: {seedPhrase: secondUserSeedPhrase}
+    })
+    await session_2({
+      method: 'POST',
+      uri: gatewayURL + '/login',
+      form: {seedPhrase: secondUserSeedPhrase}
+    })
+  }
+}
 
 if(require.main === module){
   main()
