@@ -8,6 +8,7 @@ import * as http from 'http'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
 import * as Sequelize from 'sequelize'
+const session = require('express-session')
 import { DataSigner } from './data-signer';
 import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators';
 import { GatewayIdentityCreator } from './identity-creators';
@@ -17,7 +18,7 @@ import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store
 import { MemoryAccessRights } from './access-rights';
 import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store';
 import { defineSequelizeModels } from './sequelize/models';
-import { createApp } from './app'
+import { createApp, createSocketIO } from './app'
 import * as openpgp from 'openpgp'
 openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
 
@@ -26,6 +27,7 @@ const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 
 export async function main() : Promise<any> {
+  const config = require('../config.json')
   try {
     const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://')
     await sequelize.authenticate()
@@ -96,18 +98,23 @@ export async function main() : Promise<any> {
         body: signature.signature
       })
     }
+    const verificationStore = new SequelizeVerificationStore({
+      attributeModel: sequelizeModels.Attribute,
+      verificationModel: sequelizeModels.Verification,
+      attributeStore, publicKeyRetriever
+    })
+    const sessionStore = new MemorySessionStore()
+    const expressSessionStore = new session.MemoryStore()
     const app = createApp({
-      sessionStore: new MemorySessionStore(),
+      sessionSecret: config.sessionSecret,
+      sessionStore,
+      expressSessionStore,
       accessRights: new MemoryAccessRights(),
       identityUrlBuilder,
       identityStore: identityStore,
       attributeStore,
       publicKeyRetriever,
-      verificationStore: new SequelizeVerificationStore({
-        attributeModel: sequelizeModels.Attribute,
-        verificationModel: sequelizeModels.Verification,
-        attributeStore, publicKeyRetriever
-      }),
+      verificationStore,
       identityCreator: new GatewayIdentityCreator({
         identityStore,
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
@@ -127,12 +134,21 @@ export async function main() : Promise<any> {
     })
 
     const server = http.createServer(app)
-    return await new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       server.listen(parseInt(process.env.IDENTITY_PORT) || 5678, (err) => {
         if (err) { return reject(err) }
         resolve(server)
       })
     })
+
+    const io = createSocketIO({
+      server,
+      sessionSecret: config.sessionSecret,
+      sessionStore: expressSessionStore,
+      verificationStore
+    })
+
+    return server
 
   } catch (e) {
     console.error(e)

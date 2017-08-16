@@ -1,3 +1,4 @@
+import * as events from 'events'
 import * as openpgp from 'openpgp'
 import { AttributeStore } from './attribute-store';
 
@@ -6,12 +7,14 @@ export type PublicKeyRetriever = (string) => Promise<string>
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
   private _publicKeyRetriever : PublicKeyRetriever
+  public events : events.EventEmitter
 
   constructor({attributeStore, publicKeyRetriever} :
               {attributeStore : AttributeStore, publicKeyRetriever : PublicKeyRetriever})
   {
     this._attributeStore = attributeStore
     this._publicKeyRetriever = publicKeyRetriever
+    this.events = new events.EventEmitter()
   }
 
   abstract storeVerification({userId, attrType, attrId, verifierIdentity, signature}) : Promise<string>
@@ -57,6 +60,11 @@ export class MemoryVerificationStore extends VerificationStore {
 
     const verificationId = Date.now().toString()
     attrVerifications[verificationId] = {verifierIdentity, signature}
+
+    this.events.emit('verification.stored', {
+      userId, attrType, attrId, verificationId
+    })
+
     return verificationId
   }
 
@@ -90,6 +98,9 @@ export class SequelizeVerificationStore extends VerificationStore {
       attributeId: attribute.id,
       identity: verifierIdentity,
       signature
+    })
+    this.events.emit('verification.stored', {
+      userId, attrType, attrId, verificationId: verification.id
     })
     return verification.id
   }
