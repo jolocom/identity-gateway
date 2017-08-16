@@ -153,9 +153,15 @@ export async function main() : Promise<any> {
 
 async function devPostInit() {
   const gatewayURL = 'http://localhost:' + (process.env.IDENTITY_PORT || '5678')
-  const firstUserSeedPhrase = process.env.FIRST_USER_SEED_PHRASE || 'user1 seed phrase'
-  const secondUserSeedPhrase = process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
-  const createSecondUser = process.env.SECOND_USER_SEED_PHRASE || process.env.CREATE_SECOND_USER === 'true'
+  const firstUser = {
+    userName: process.env.FIRST_USER_NAME || 'joe',
+    seedPhrase: process.env.FIRST_USER_SEED_PHRASE || 'user1 seed phrase'
+  }
+  const secondUser = {
+    create: process.env.SECOND_USER_SEED_PHRASE || process.env.CREATE_SECOND_USER === 'true',
+    userName: process.env.SECOND_USER_NAME || 'jane',
+    seedPhrase: process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
+  }
   
   const cookieJar_1 = request.jar()
   const session_1 = request.defaults({jar: cookieJar_1})
@@ -164,25 +170,25 @@ async function devPostInit() {
   
   await session_1({
     method: 'PUT',
-    uri: gatewayURL + '/register',
-    form: {seedPhrase: firstUserSeedPhrase}
+    uri: `${gatewayURL}/${firstUser.userName}`,
+    form: {seedPhrase: firstUser.seedPhrase}
   })
   await session_1({
-    method: 'PUT',
+    method: 'POST',
     uri: gatewayURL + '/login',
-    form: {seedPhrase: firstUserSeedPhrase}
+    form: {seedPhrase: firstUser.seedPhrase}
   })
 
-  if (createSecondUser) {
+  if (secondUser.create) {
     await session_2({
-      method: 'POST',
-      uri: gatewayURL + '/register',
-      form: {seedPhrase: secondUserSeedPhrase}
+      method: 'PUT',
+      uri: `${gatewayURL}/${secondUser.userName}`,
+      form: {seedPhrase: secondUser.seedPhrase}
     })
     await session_2({
       method: 'POST',
       uri: gatewayURL + '/login',
-      form: {seedPhrase: secondUserSeedPhrase}
+      form: {seedPhrase: secondUser.seedPhrase}
     })
   }
 }
