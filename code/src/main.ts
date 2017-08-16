@@ -36,6 +36,11 @@ export async function main() : Promise<any> {
       await sequelize.sync()
     }
 
+    let privateKeySize = DEVELOPMENT_MODE ? 512 : 2048
+    if (process.env.PRIV_KEY_SIZE){
+      privateKeySize = parseInt(process.env.PRIV_KEY_SIZE)
+    }
+
     const identityUrlBuilder = ({userName, req}) => {
       if (DEVELOPMENT_MODE) {
         return `http://localhost:5678/${userName}`
@@ -112,7 +117,7 @@ export async function main() : Promise<any> {
       identityCreator: new GatewayIdentityCreator({
         identityStore,
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
-        privateKeyGenerator: new GatewayPrivateKeyGenerator(),
+        privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
