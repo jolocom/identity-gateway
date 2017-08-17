@@ -16,6 +16,8 @@ import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
 import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
+import { WalletManager, Wallet } from 'smartwallet-contracts'
+const config = require('./config.json')
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, attributeStore, verificationStore,
@@ -225,6 +227,23 @@ const app = express()
           attrValue: JSON.stringify(req.body.attributeValue),
           identity: req.body.identity
         }))
+      }
+    },
+    '/ethereum/create-identity': {
+      post: async (req, res) => {
+        let manager = WalletManager(config) //TODO config file needed
+        let wallet = await manager.register({
+          userName: req.user.identityURL,
+          seedPhrase: req.body.seedPhrase
+        })
+        return wallet
+      }
+    },
+    '/ethereum/main-address': {
+      post: async (req, res) => {
+        let wallet = Wallet(config) //TODO config file needed
+        let mainAddress = await wallet.init(req.body.seedPhrase)
+        return mainAddress
       }
     }
   }
