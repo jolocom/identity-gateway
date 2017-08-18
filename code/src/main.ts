@@ -19,6 +19,9 @@ import { MemoryAccessRights } from './access-rights'
 import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store'
 import { WalletManager, Wallet } from 'smartwallet-contracts'
 import { defineSequelizeModels } from './sequelize/models'
+
+import { EthereumInteraction } from './ethereum-interaction'
+
 import { createApp } from './app'
 import * as openpgp from 'openpgp'
 openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
@@ -33,7 +36,7 @@ export async function main() : Promise<any> {
   try {
     const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://')
     await sequelize.authenticate()
-    
+
     const sequelizeModels = defineSequelizeModels(sequelize)
     if (DEVELOPMENT_MODE || process.env.SYNC === 'true') {
       await sequelize.sync()
@@ -64,25 +67,25 @@ export async function main() : Promise<any> {
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
-      
+
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
         form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      
+
       return (await req(`${identity}/identity/${attrType}/${attrId}`))
     }
     const verificationsRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
-      
+
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
         form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      
+
       return _.map(JSON.parse(await req(`${identity}/identity/${attrType}/${attrId}/verifications`)),
         (verification, id) => {
           return {...verification, id}
@@ -115,7 +118,12 @@ export async function main() : Promise<any> {
 
     // const walletManager = new WalletManager(config.ethereum)
     const walletManager = null
+    const wallet = new Wallet(config)
+
     const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
+
+    const ethereumInteraction = new EthereumInteraction({wallet})
+
     const getEthereumAccountBySeedPhrase = async (seedPhrase : string) => {
       const wallet = new Wallet(config)
       await wallet.init(seedPhrase)
@@ -149,6 +157,7 @@ export async function main() : Promise<any> {
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
       ethereumIdentityCreator,
+      ethereumInteraction,
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
         attributeRetriever,
@@ -194,12 +203,12 @@ async function devPostInit() {
     userName: process.env.SECOND_USER_NAME || 'jane',
     seedPhrase: process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
   }
-  
+
   const cookieJar_1 = request.jar()
   const session_1 = request.defaults({jar: cookieJar_1})
   const cookieJar_2 = request.jar()
   const session_2 = request.defaults({jar: cookieJar_2})
-  
+
   await session_1({
     method: 'PUT',
     uri: `${gatewayURL}/${firstUser.userName}`,
