@@ -113,7 +113,7 @@ export async function main() : Promise<any> {
       const wallet = new Wallet(config)
       await wallet.init(seedPhrase)
       return {
-        mainAddress: wallet.mainAddress,
+        walletAddress: wallet.mainAddress,
         identityAddress: wallet.identityAddress,
       }
     }

@@ -34,7 +34,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetriever : (string) => Promise<string>,
                            sessionStore : SessionStore,
                            getEthereumAccountBySeedPhrase : (string) => Promise<{
-                             mainAddress : string,
+                             walletAddress : string,
                              identityAddress : string,
                            }>})
 {
@@ -237,6 +237,7 @@ const app = express()
     '/:userName/ethereum/create-identity': {
       post: async (req, res) => {
         res.json(await ethereumIdentityCreator.createIdentity({
+          userId: req.user.id,
           seedPhrase: req.body.seedPhrase,
           publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
           identityURL: req.user.identityURL

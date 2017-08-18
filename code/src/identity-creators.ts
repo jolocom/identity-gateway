@@ -50,7 +50,9 @@ export class EthereumIdentityCreator {
     this._walletManager = walletManager
   }
 
-  async createIdentity({seedPhrase, userId, publicKey, identityURL}) {
+  async createIdentity({seedPhrase, userId, publicKey, identityURL}) :
+    Promise<{walletAddress, identityAddress}>
+  {
     let wallet = await this._walletManager.register({
       seedPhrase,
       identityURL,
@@ -61,7 +63,7 @@ export class EthereumIdentityCreator {
       {type: 'ethereum:identity', identitfier: wallet.identityAddress},
     ]})
     return {
-      mainAddress: wallet.mainAddress,
+      walletAddress: wallet.mainAddress,
       identityAddress: wallet.identityAddress
     }
   }
