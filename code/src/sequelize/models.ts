@@ -24,6 +24,7 @@ export function defineSequelizeModels(sequelize) {
     Verification: {
       identity: Sequelize.STRING,
       signature: Sequelize.TEXT,
+      linkedIdentities: Sequelize.TEXT,
     },
     Rule: {
       requester: Sequelize.STRING,

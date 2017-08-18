@@ -2,6 +2,7 @@ import * as openpgp from 'openpgp'
 import { AttributeStore } from './attribute-store';
 
 export type PublicKeyRetriever = (string) => Promise<string>
+export interface PublicKeyRetrievers { [type : string] : (...args) => Promise<string> }
 
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
@@ -27,12 +28,15 @@ export abstract class VerificationStore {
     userId, attrType, attrId,
     verifierIdentity, linkedIdentities, signature
   }) {
+    const attrValue = await this._attributeStore.retrieveStringAttribute({userId, type: attrType, id: attrId})
+
+    let armoredPublicKey
     if (linkedIdentities && linkedIdentities.ethereum) {
-      
+      armoredPublicKey = linkedIdentities.ethereum.publicKey
+    } else {
+      armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
     }
 
-    const attrValue = await this._attributeStore.retrieveStringAttribute({userId, type: attrType, id: attrId})
-    const armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
     const result = await openpgp.verify({
       message: openpgp.cleartext.readArmored(attrValue),
       signature: openpgp.signature.readArmored(signature),
@@ -92,9 +96,9 @@ export class SequelizeVerificationStore extends VerificationStore {
   }
 
   async storeVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature}) {
-    // linkedIdentites = linkedIdentites || {}
-    // linkedIdentites.ethereum = linkedIdentites.ethereum &&
-    //   await this._getEthereumAccountByUri(verifierIdentity)
+    linkedIdentities = linkedIdentities || {}
+    linkedIdentities.ethereum = linkedIdentities.ethereum &&
+      await this._getEthereumAccountByUri(verifierIdentity)
 
     if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
       return
@@ -106,6 +110,9 @@ export class SequelizeVerificationStore extends VerificationStore {
     const verification = await this._verificationModel.create({
       attributeId: attribute.id,
       identity: verifierIdentity,
+      linkedIdentities: JSON.stringify({
+        ethereum: linkedIdentities.ethereum ? linkedIdentities.ethereum.identityAddress : null
+      }),
       signature
     })
     return verification.id
@@ -124,6 +131,7 @@ export class SequelizeVerificationStore extends VerificationStore {
       verifications[verification.id] = {
         verifierIdentity: verification.identity,
         signature: verification.signature,
+        linkedIdentities: JSON.parse(verification.linkedIdentities)
       }
     })
 

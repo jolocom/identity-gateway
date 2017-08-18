@@ -11,7 +11,7 @@ import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
-import { VerificationStore } from './verification-store'
+import { VerificationStore, PublicKeyRetrievers } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
 import { SessionStore } from './session-store'
@@ -20,7 +20,7 @@ import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } f
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
                            attributeStore, verificationStore,
-                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever,
+                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetrievers,
                            getEthereumAccountBySeedPhrase} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
@@ -31,7 +31,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
                            attributeChecker : AttributeChecker,
-                           publicKeyRetriever : (string) => Promise<string>,
+                           publicKeyRetrievers : PublicKeyRetrievers,
                            sessionStore : SessionStore,
                            getEthereumAccountBySeedPhrase : (string) => Promise<{
                              walletAddress : string,
@@ -72,7 +72,7 @@ const app = express()
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
     next()
   })
-  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
+  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
   setupSessionSerialization(passport, {sessionStore})
   // app.use(async (req, res, next) => {
   //   try {

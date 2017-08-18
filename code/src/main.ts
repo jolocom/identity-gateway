@@ -58,8 +58,13 @@ export async function main() : Promise<any> {
     const attributeStore = new SequelizeAttributeStore({
       attributeModel: sequelizeModels.Attribute
     })
-    const publicKeyRetriever = async (identity) => {
-      return JSON.parse((await request(identity))).publicKey
+    const publicKeyRetrievers = {
+      url: async (identity) => {
+        return JSON.parse((await request(identity))).publicKey
+      },
+      ethereum: async (identity, identityAddress) => {
+        return await walletManager.getPublicKeyByUri({uri: identity, identityAddress})
+      }
     }
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
@@ -125,9 +130,10 @@ export async function main() : Promise<any> {
       }
     }
     const getEthereumAccountByUri = async (uri : string) : Promise<{identityAddress, publicKey}> => {
-      return {
-        identityAddress: '0x0', publicKey: 'pkey'
-      }
+      return await walletManager.getAccountInfoByUri(uri)
+      // return {
+      //   identityAddress: '0x0', publicKey: 'pkey'
+      // }
     }
 
     const app = createApp({
@@ -136,11 +142,11 @@ export async function main() : Promise<any> {
       identityUrlBuilder,
       identityStore: identityStore,
       attributeStore,
-      publicKeyRetriever,
+      publicKeyRetrievers,
       verificationStore: new SequelizeVerificationStore({
         attributeModel: sequelizeModels.Attribute,
         verificationModel: sequelizeModels.Verification,
-        attributeStore, publicKeyRetriever,
+        attributeStore, publicKeyRetriever: publicKeyRetrievers.url,
         getEthereumAccountByUri
       }),
       identityCreator: new GatewayIdentityCreator({
@@ -157,7 +163,7 @@ export async function main() : Promise<any> {
       }),
       attributeChecker: new AttributeChecker({
         dataSigner: new DataSigner({identityStore}),
-        publicKeyRetriever,
+        publicKeyRetrievers,
         attributeRetriever,
         verificationsRetriever
       }),
