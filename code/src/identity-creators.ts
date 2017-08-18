@@ -41,13 +41,20 @@ export class SolidIdentityCreator {
 
 export class EthereumIdentityCreator {
   private _walletManager
-  private _jolocomEtherURL
 
-  constructor({walletManager, jolocomEtherURL}) {
+  constructor({walletManager}) {
     this._walletManager = walletManager
   }
 
-  createIdentity({seedPhrase, publicKey, identityURL}) {
-
+  async createIdentity({seedPhrase, publicKey, identityURL}) {
+    let wallet = await this._walletManager.register({
+      seedPhrase,
+      identityURL,
+      publicKey
+    })
+    return {
+      mainAddress: wallet.mainAddress,
+      identityAddress: wallet.identityAddress
+    }
   }
 }

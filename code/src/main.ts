@@ -9,15 +9,16 @@ import { spawnSync } from 'child_process'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
 import * as Sequelize from 'sequelize'
-import { DataSigner } from './data-signer';
-import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators';
-import { GatewayIdentityCreator } from './identity-creators';
-import { AttributeVerifier } from './attribute-verifier';
-import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store';
-import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store';
-import { MemoryAccessRights } from './access-rights';
-import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store';
-import { defineSequelizeModels } from './sequelize/models';
+import { DataSigner } from './data-signer'
+import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
+import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
+import { AttributeVerifier } from './attribute-verifier'
+import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store'
+import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store'
+import { MemoryAccessRights } from './access-rights'
+import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store'
+import { WalletManager, Wallet } from 'smartwallet-contracts'
+import { defineSequelizeModels } from './sequelize/models'
 import { createApp } from './app'
 import * as openpgp from 'openpgp'
 openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
@@ -27,6 +28,8 @@ const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 
 export async function main() : Promise<any> {
+  const config = require('../config.json')
+
   try {
     const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://')
     await sequelize.authenticate()
@@ -102,6 +105,18 @@ export async function main() : Promise<any> {
         body: signature.signature
       })
     }
+
+    const walletManager = new WalletManager(config.ethereum)
+    const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager})
+    const getEthereumAccountBySeedPhrase = async (seedPhrase : string) => {
+      const wallet = new Wallet(config)
+      await wallet.init(seedPhrase)
+      return {
+        mainAddress: wallet.mainAddress,
+        identityAddress: wallet.identityAddress,
+      }
+    }
+
     const app = createApp({
       sessionStore: new MemorySessionStore(),
       accessRights: new MemoryAccessRights(),
@@ -119,6 +134,7 @@ export async function main() : Promise<any> {
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
+      ethereumIdentityCreator,
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
         attributeRetriever,
@@ -129,7 +145,8 @@ export async function main() : Promise<any> {
         publicKeyRetriever,
         attributeRetriever,
         verificationsRetriever
-      })
+      }),
+      getEthereumAccountBySeedPhrase
     })
 
     const server = http.createServer(app)

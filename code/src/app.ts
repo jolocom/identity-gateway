@@ -9,29 +9,34 @@ import * as passport from 'passport'
 import * as URL from 'url-parse'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
-import { GatewayIdentityCreator } from './identity-creators'
+import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
 import { VerificationStore } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
 import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
-import { WalletManager, Wallet } from 'smartwallet-contracts'
-const config = require('../config.json')
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
-                           identityCreator, attributeStore, verificationStore,
-                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever} :
+                           identityCreator, ethereumIdentityCreator,
+                           attributeStore, verificationStore,
+                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever,
+                           getEthereumAccountBySeedPhrase} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
                            identityCreator : GatewayIdentityCreator,
+                           ethereumIdentityCreator : EthereumIdentityCreator,
                            attributeStore : AttributeStore,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
                            attributeChecker : AttributeChecker,
                            publicKeyRetriever : (string) => Promise<string>,
-                           sessionStore : SessionStore})
+                           sessionStore : SessionStore,
+                           getEthereumAccountBySeedPhrase : (string) => Promise<{
+                             mainAddress : string,
+                             identityAddress : string,
+                           }>})
 {
 const app = express()
   app.use(session({
@@ -229,21 +234,18 @@ const app = express()
         }))
       }
     },
-    '/ethereum/create-identity': {
+    '/:userName/ethereum/create-identity': {
       post: async (req, res) => {
-        let manager = WalletManager(config) //TODO config file needed
-        let wallet = await manager.register({
-          userName: req.user.identityURL,
-          seedPhrase: req.body.seedPhrase
-        })
-        res.json({wallet})
+        res.json(await ethereumIdentityCreator.createIdentity({
+          seedPhrase: req.body.seedPhrase,
+          publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
+          identityURL: req.user.identityURL
+        }))
       }
     },
-    '/ethereum/main-address': {
-      post: async (req, res) => {
-        let wallet = Wallet(config) //TODO config file needed
-        let mainAddress = await wallet.init(req.body.seedPhrase)
-        res.json({mainAddress})
+    '/:userName/ethereum': {
+      get: async (req, res) => {
+        res.json(await getEthereumAccountBySeedPhrase(req.body.seedPhrase))
       }
     }
   }
