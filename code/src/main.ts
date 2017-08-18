@@ -53,7 +53,7 @@ export async function main() : Promise<any> {
     }
     const identityStore = new SequelizeGatewayIdentityStore({
       identityModel: sequelizeModels.Identity,
-      lnikedIdentityModel: sequelizeModels.LinkedIdentity,
+      linkedIdentityModel: sequelizeModels.LinkedIdentity
     })
     const attributeStore = new SequelizeAttributeStore({
       attributeModel: sequelizeModels.Attribute
@@ -108,7 +108,7 @@ export async function main() : Promise<any> {
     }
 
     const walletManager = new WalletManager(config.ethereum)
-    const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager})
+    const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
     const getEthereumAccountBySeedPhrase = async (seedPhrase : string) => {
       const wallet = new Wallet(config)
       await wallet.init(seedPhrase)
@@ -139,7 +139,8 @@ export async function main() : Promise<any> {
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
         attributeRetriever,
-        verificationSender
+        verificationSender,
+        identityStore
       }),
       attributeChecker: new AttributeChecker({
         dataSigner: new DataSigner({identityStore}),

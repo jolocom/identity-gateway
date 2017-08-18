@@ -210,9 +210,9 @@ const app = express()
     },
     '/:userName/verify': {
       post: async (req, res) => {
-        console.log('!?!?!?!? verify for ', req.params.userName, req.user.identity)
         await attributeVerifier.verifyAttribute({
           sourceIdentity: req.user.identity,
+          sourceUserId: req.user.id,
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
