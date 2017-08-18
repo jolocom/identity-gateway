@@ -64,12 +64,12 @@ describe('Sequelize access rights', async () => {
   const sequelizeModels = defineSequelizeModels(sequelize)
   await sequelize.sync()
   const accessRights = new SequelizeAccessRights(
-    {ruleModel: sequelizeModels.Rules})
+    {ruleModel: sequelizeModels.Rule})
   let dummyNow = moment({year: 2017, month: 7, day: 7, hour: 10})
   accessRights._getNow = () => dummyNow
 
   beforeEach(async () => {
-    await sequelizeModels.Rules.Delete()
+    await sequelizeModels.Rule.Delete()
   })
 
   testAccessRights({accessRights})

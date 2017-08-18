@@ -52,7 +52,8 @@ export async function main() : Promise<any> {
       }
     }
     const identityStore = new SequelizeGatewayIdentityStore({
-      identityModel: sequelizeModels.Identity
+      identityModel: sequelizeModels.Identity,
+      lnikedIdentityModel: sequelizeModels.LinkedIdentity,
     })
     const attributeStore = new SequelizeAttributeStore({
       attributeModel: sequelizeModels.Attribute

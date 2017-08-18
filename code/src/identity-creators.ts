@@ -41,17 +41,25 @@ export class SolidIdentityCreator {
 
 export class EthereumIdentityCreator {
   private _walletManager
+  private _identityStore : GatewayIdentityStore
 
-  constructor({walletManager}) {
+  constructor({identityStore, walletManager} :
+              {identityStore : GatewayIdentityStore, walletManager})
+  {
+    this._identityStore = identityStore
     this._walletManager = walletManager
   }
 
-  async createIdentity({seedPhrase, publicKey, identityURL}) {
+  async createIdentity({seedPhrase, userId, publicKey, identityURL}) {
     let wallet = await this._walletManager.register({
       seedPhrase,
       identityURL,
       publicKey
     })
+    this._identityStore.linkIdentity({userId, identities: [
+      {type: 'ethereum:wallet', identitfier: wallet.mainAddress},
+      {type: 'ethereum:identity', identitfier: wallet.identityAddress},
+    ]})
     return {
       mainAddress: wallet.mainAddress,
       identityAddress: wallet.identityAddress
