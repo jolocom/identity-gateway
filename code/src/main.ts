@@ -89,7 +89,10 @@ export async function main() : Promise<any> {
         }
       )
     }
-    const verificationSender = async ({sourceIdentitySignature, identity, attrType, attrId, signature}) => {
+    const verificationSender = async ({
+      sourceIdentitySignature, sourceLinkedIdentities,
+      identity, attrType, attrId, signature
+    }) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
       await req({
@@ -101,13 +104,17 @@ export async function main() : Promise<any> {
         method: 'PUT',
         uri: `${identity}/identity/${attrType}/${attrId}/verifications`,
         headers: {
-          'Content-Type': 'text/plain'
+          'Content-Type': 'text/json'
         },
-        body: signature.signature
+        body: JSON.stringify({
+          linkedIdenities: sourceLinkedIdentities,
+          signature: signature.signature
+        })
       })
     }
 
-    const walletManager = new WalletManager(config.ethereum)
+    // const walletManager = new WalletManager(config.ethereum)
+    const walletManager = null
     const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
     const getEthereumAccountBySeedPhrase = async (seedPhrase : string) => {
       const wallet = new Wallet(config)
@@ -115,6 +122,11 @@ export async function main() : Promise<any> {
       return {
         walletAddress: wallet.mainAddress,
         identityAddress: wallet.identityAddress,
+      }
+    }
+    const getEthereumAccountByUri = async (uri : string) : Promise<{identityAddress, publicKey}> => {
+      return {
+        identityAddress: '0x0', publicKey: 'pkey'
       }
     }
 
@@ -128,7 +140,8 @@ export async function main() : Promise<any> {
       verificationStore: new SequelizeVerificationStore({
         attributeModel: sequelizeModels.Attribute,
         verificationModel: sequelizeModels.Verification,
-        attributeStore, publicKeyRetriever
+        attributeStore, publicKeyRetriever,
+        getEthereumAccountByUri
       }),
       identityCreator: new GatewayIdentityCreator({
         identityStore,

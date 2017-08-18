@@ -42,15 +42,17 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
     return ((_.find(this.identities, {userName}) || {}).keyPair || {}).publicKey
   }
 
-  async linkIdentity({userName, identities} :
-                       {userName : string,
+  async linkIdentity({userId, identities} :
+                       {userId : string,
                         identities : Array<{type, identitfier}> | {type, identitfier}})
   {
     throw new Error("Not implemented yet")
   }
 
-  async getLinkedIdentity({userName, type} : {userName : string, type : string}) {
-    throw new Error("Not implemented yet")
+  async getLinkedIdentity({userId, type} : {userId : string, type : string}) {
+    if (1)
+      throw new Error("Not implemented yet")
+    return 'shut up, type checking'
   }
 }
 

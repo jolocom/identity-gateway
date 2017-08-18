@@ -6,7 +6,7 @@ export type PublicKeyRetriever = (string) => Promise<string>
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
   private _publicKeyRetriever : PublicKeyRetriever
-
+  
   constructor({attributeStore, publicKeyRetriever} :
               {attributeStore : AttributeStore, publicKeyRetriever : PublicKeyRetriever})
   {
@@ -14,7 +14,9 @@ export abstract class VerificationStore {
     this._publicKeyRetriever = publicKeyRetriever
   }
 
-  abstract storeVerification({userId, attrType, attrId, verifierIdentity, signature}) : Promise<string>
+  abstract storeVerification({
+    userId, attrType, attrId, verifierIdentity, linkedIdentities, signature
+  }) : Promise<string>
   abstract getVerifications({userId, attrType, attrId}) : Promise<any>
 
   async getVerification({userId, attrType, attrId, verificationId}) {
@@ -23,8 +25,12 @@ export abstract class VerificationStore {
 
   protected async checkVerification({
     userId, attrType, attrId,
-    verifierIdentity, signature
+    verifierIdentity, linkedIdentities, signature
   }) {
+    if (linkedIdentities && linkedIdentities.ethereum) {
+      
+    }
+
     const attrValue = await this._attributeStore.retrieveStringAttribute({userId, type: attrType, id: attrId})
     const armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
     const result = await openpgp.verify({
@@ -39,8 +45,8 @@ export abstract class VerificationStore {
 export class MemoryVerificationStore extends VerificationStore {
   private _verfications = {}
 
-  async storeVerification({userId, attrType, attrId, verifierIdentity, signature}) {
-    if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, signature})) {
+  async storeVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature}) {
+    if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
       return
     }
 
@@ -71,18 +77,29 @@ export class MemoryVerificationStore extends VerificationStore {
 export class SequelizeVerificationStore extends VerificationStore {
   private _attributeModel
   private _verificationModel
+  protected _getEthereumAccountByUri : (uri : string) => Promise<{identityAddress, publicKey}>
 
-  constructor({attributeModel, verificationModel, attributeStore, publicKeyRetriever} :
+  constructor({attributeModel, verificationModel, attributeStore,
+               publicKeyRetriever, getEthereumAccountByUri} :
               {attributeModel, verificationModel, attributeStore : AttributeStore,
-               publicKeyRetriever : PublicKeyRetriever})
+               publicKeyRetriever : PublicKeyRetriever,
+               getEthereumAccountByUri : (uri : string) => Promise<{identityAddress, publicKey}>})
   {
     super({attributeStore, publicKeyRetriever})
     this._attributeModel = attributeModel
     this._verificationModel = verificationModel
+    this._getEthereumAccountByUri = getEthereumAccountByUri
   }
 
-  async storeVerification({userId, attrType, attrId, verifierIdentity, signature}) {
-    // console.log('!!!!! store !!!!!')
+  async storeVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature}) {
+    // linkedIdentites = linkedIdentites || {}
+    // linkedIdentites.ethereum = linkedIdentites.ethereum &&
+    //   await this._getEthereumAccountByUri(verifierIdentity)
+
+    if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
+      return
+    }
+
     const attribute = await this._attributeModel.findOne({where: {
       identityId: userId, type: attrType, key: attrId,
     }})

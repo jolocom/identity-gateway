@@ -194,7 +194,9 @@ const app = express()
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const verificationId = await verificationStore.storeVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
-          verifierIdentity: req.user.identity, signature: req.body
+          verifierIdentity: req.user.identity,
+          linkedIdentities: req.body.linkedIdentities,
+          signature: req.body.signature
         })
         res.json({verificationId})
       }
