@@ -240,17 +240,18 @@ const app = express()
     },
     '/:userName/ethereum/create-identity': {
       post: async (req, res) => {
-        res.json(await ethereumIdentityCreator.createIdentity({
-          userId: req.user.id,
-          seedPhrase: req.body.seedPhrase,
-          publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
-          identityURL: req.user.identityURL
-        }))
+        res.json('identity created')
+        // res.json(await ethereumIdentityCreator.createIdentity({
+        //   userId: req.user.id,
+        //   seedPhrase: req.body.seedPhrase,
+        //   publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
+        //   identityURL: req.user.identityURL
+        // }))
       }
     },
     '/:userName/ethereum': {
       post: async (req, res) => {
-        res.json('0x64a5d8b41ba9d01d64016164bf5b51b48440d46d')
+        res.json('0xTESTS8b41ba9d01d64016164bf5b51b48440d46d')
         // res.json(await getEthereumAccountBySeedPhrase(req.body.seedPhrase))
       }
     },
@@ -263,10 +264,12 @@ const app = express()
     '/:userName/ethereum/send-ether': {
       post: async (req, res) => {
         res.json('send to 0xBLABLABLA')
-        // res.json(await sendEther({
-        //   sender: req.body.mainAddress
-        //   receiver: req.body.receiverAddress,
-        //   amountEth: req.body.amountEth
+        // res.json(await ethereumInteraction.sendEther({
+        //   receiver: req.body.receiver,
+        //   amountEther: req.body.amountEther,
+          // data: req.body.data,
+          // pin: req.body.pin,
+          // gasInWei: req.body.gasInWei
         // }))
       }
     }

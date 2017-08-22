@@ -7,17 +7,25 @@ export class EthereumInteraction {
     this._wallet = wallet
   }
 
-  async getEtherBalance({mainAddress}) :
-  Promise<{balanceEther}>
+  async getEtherBalance({mainAddress} : {mainAddress : string})
   {
     let wallet = await this._wallet.getBalance({
       mainAddress
     })
     return {
       balanceEther: '33.71'
+      // balanceEther: wallet.amountOfEther
     }
   }
 
-  // async sendEther({})
-
+  async sendEther({receiver, amountEther, data, pin, gasInWei}) :
+  Promise<{result}>
+  {
+    let wallet = await this._wallet.sendEther({
+      receiver, amountEther, data, pin, gasInWei
+    })
+    return {
+      result: wallet.result
+    }
+  }
 }
