@@ -1,5 +1,4 @@
 import { AttributeChecker } from './attribute-checker';
-import { MemorySessionStore } from './session-store';
 require('source-map-support').install()
 require('regenerator-runtime/runtime')
 import * as _ from 'lodash'
@@ -32,7 +31,9 @@ export async function main() : Promise<any> {
   const config = require('../config.json')
 
   try {
-    const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://')
+    const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://', {
+      logging: process.env.LOG_SQL === 'true'
+    })
     await sequelize.authenticate()
     
     const sequelizeModels = defineSequelizeModels(sequelize)
@@ -105,7 +106,7 @@ export async function main() : Promise<any> {
         method: 'PUT',
         uri: `${identity}/identity/${attrType}/${attrId}/verifications`,
         headers: {
-          'Content-Type': 'text/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           linkedIdenities: sourceLinkedIdentities,
@@ -114,7 +115,6 @@ export async function main() : Promise<any> {
       })
     }
 
-    const sessionStore = new MemorySessionStore()
     const expressSessionStore = new session.MemoryStore()
 
     // const walletManager = new WalletManager(config.ethereum)
@@ -143,7 +143,6 @@ export async function main() : Promise<any> {
 
     const app = createApp({
       sessionSecret: config.sessionSecret,
-      sessionStore,
       expressSessionStore,
       accessRights: new MemoryAccessRights(),
       identityUrlBuilder,
@@ -169,7 +168,7 @@ export async function main() : Promise<any> {
         attributeRetriever,
         verificationsRetriever
       }),
-      // getEthereumAccountBySeedPhrase
+      getEthereumAccountBySeedPhrase
     })
 
     const server = http.createServer(app)
@@ -199,47 +198,158 @@ export async function main() : Promise<any> {
 }
 
 async function devPostInit() {
-  const gatewayURL = 'http://localhost:' + (process.env.IDENTITY_PORT || '5678')
-  const firstUser = {
-    userName: process.env.FIRST_USER_NAME || 'joe',
-    seedPhrase: process.env.FIRST_USER_SEED_PHRASE || 'user1 seed phrase'
-  }
-  const secondUser = {
-    create: process.env.SECOND_USER_SEED_PHRASE || process.env.CREATE_SECOND_USER === 'true',
-    userName: process.env.SECOND_USER_NAME || 'jane',
-    seedPhrase: process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
-  }
-  
-  const cookieJar_1 = request.jar()
-  const session_1 = request.defaults({jar: cookieJar_1})
-  const cookieJar_2 = request.jar()
-  const session_2 = request.defaults({jar: cookieJar_2})
-  
-  await session_1({
-    method: 'PUT',
-    uri: `${gatewayURL}/${firstUser.userName}`,
-    form: {seedPhrase: firstUser.seedPhrase}
-  })
-  await session_1({
-    method: 'POST',
-    uri: gatewayURL + '/login',
-    form: {seedPhrase: firstUser.seedPhrase}
-  })
+  try {
+    const logStep = (msg) => {
+      console.log('= DEV POST INIT:', msg, '=')
+    }
 
-  if (secondUser.create) {
-    await session_2({
+    logStep('Start')
+
+    const gatewayURL = 'http://localhost:' + (process.env.IDENTITY_PORT || '5678')
+    const testAttributeVerification = process.env.TEST_ATTRIBUTE_VERIFICATION === 'true'
+    const firstUser = {
+      userName: process.env.FIRST_USER_NAME || 'joe',
+      seedPhrase: process.env.FIRST_USER_SEED_PHRASE || 'user1 seed phrase'
+    }
+    const createSecondUser = testAttributeVerification ||
+      process.env.SECOND_USER_SEED_PHRASE ||
+      process.env.CREATE_SECOND_USER === 'true'
+    const secondUser = {
+      create: createSecondUser,
+      userName: process.env.SECOND_USER_NAME || 'jane',
+      seedPhrase: process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
+    }
+    
+    const cookieJar_1 = request.jar()
+    const session_1 = request.defaults({jar: cookieJar_1})
+    const cookieJar_2 = request.jar()
+    const session_2 = request.defaults({jar: cookieJar_2})
+    
+    logStep('Creating first user')
+
+    await session_1({
       method: 'PUT',
-      uri: `${gatewayURL}/${secondUser.userName}`,
-      form: {seedPhrase: secondUser.seedPhrase}
+      uri: `${gatewayURL}/${firstUser.userName}`,
+      form: {seedPhrase: firstUser.seedPhrase}
     })
-    await session_2({
+
+    logStep('Logging in first user')
+
+    await session_1({
       method: 'POST',
       uri: gatewayURL + '/login',
-      form: {seedPhrase: secondUser.seedPhrase}
+      form: {seedPhrase: firstUser.seedPhrase}
     })
+
+    if (secondUser.create) {
+      logStep('Creating second user')
+
+      await session_2({
+        method: 'PUT',
+        uri: `${gatewayURL}/${secondUser.userName}`,
+        form: {seedPhrase: secondUser.seedPhrase}
+      })
+
+      logStep('Logging in second user')
+
+      await session_2({
+        method: 'POST',
+        uri: gatewayURL + '/login',
+        form: {seedPhrase: secondUser.seedPhrase}
+      })
+    }
+
+    if (testAttributeVerification) {
+      logStep('Storing e-mail attribute')
+
+      await session_1({
+        method: 'PUT',
+        uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+        body: '[["value","vincent@shishkabab.net"]]',
+        headers: {'Content-Type': 'application/json'}
+      })
+
+      logStep('Retrieving e-mail attribute')
+
+      console.log('Stored email attribute', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+      }))
+
+      logStep('Granting access to e-mail attribute')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/access/grant`,
+        form: {
+          identity: `${gatewayURL}/${secondUser.userName}`,
+          pattern: '/identity/email/primary',
+          read: 'true',
+          write: 'false'
+        },
+      })
+
+      logStep('Granting write access to e-mail attribute verifications')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/access/grant`,
+        form: {
+          identity: `${gatewayURL}/${secondUser.userName}`,
+          pattern: '/identity/email/primary/verifications',
+          read: 'true',
+          write: 'true'
+        }
+      })
+
+      logStep('Verifying e-mail attribute')
+
+      await session_2({
+        method: 'POST',
+        uri: `${gatewayURL}/${secondUser.userName}/verify`,
+        form: {
+          identity: `${gatewayURL}/${firstUser.userName}`,
+          seedPhrase: secondUser.seedPhrase,
+          attributeType: 'email',
+          attributeId: 'primary',
+          attributeValue: '[["value","vincent@shishkabab.net"]]'
+        }
+      })
+
+      logStep('Retrieving e-mail attribute verifications')
+
+      console.log('Email attribute verifications', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary/verifications`,
+      }))
+
+      logStep('Checking e-mail attribute')
+
+      console.log('Email attribute check result', await session_2({
+        method: 'POST',
+        uri: `${gatewayURL}/${secondUser.userName}/check`,
+        form: {
+          identity: `${gatewayURL}/${firstUser.userName}`,
+          seedPhrase: secondUser.seedPhrase,
+          attributeType: 'email',
+          attributeId: 'primary',
+          attributeValue: '[["value","vincent@shishkabab.net"]]'
+        }
+      }))
+    }
+
+    logStep('Finished')
+  } catch (e) {
+    console.error(e)
+    console.trace()
   }
 }
 
 if(require.main === module){
   main()
 }
+
+process.on('unhandledRejection', (reason, p) => {
+  console.log('Unhandled Rejection at: ', p, 'reason:', reason);
+  // application specific logging, throwing an error, or other logic here
+});

@@ -34,10 +34,12 @@ export abstract class VerificationStore {
       
     }
 
-    const attrValue = await this._attributeStore.retrieveStringAttribute({userId, type: attrType, id: attrId})
+    const attrValue = (await this._attributeStore.retrieveStringAttribute({
+      userId, type: attrType, id: attrId
+    })).value
     const armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
     const result = await openpgp.verify({
-      message: openpgp.cleartext.readArmored(attrValue),
+      message: new openpgp.cleartext.CleartextMessage(attrValue),
       signature: openpgp.signature.readArmored(signature),
       publicKeys: openpgp.key.readArmored(armoredPublicKey).keys
     })
@@ -107,7 +109,7 @@ export class SequelizeVerificationStore extends VerificationStore {
     if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
       return
     }
-
+    
     const attribute = await this._attributeModel.findOne({where: {
       identityId: userId, type: attrType, key: attrId,
     }})

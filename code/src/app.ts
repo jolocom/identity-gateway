@@ -16,14 +16,14 @@ import { AttributeStore } from './attribute-store'
 import { VerificationStore } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
-import { SessionStore } from './session-store'
+// import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
                            attributeStore, verificationStore,
                            attributeVerifier, attributeChecker,
-                           sessionStore, publicKeyRetriever,
+                           publicKeyRetriever,
                            expressSessionStore, sessionSecret,
                            getEthereumAccountBySeedPhrase} :
                           {accessRights : AccessRights,
@@ -36,7 +36,6 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier : AttributeVerifier,
                            attributeChecker : AttributeChecker,
                            publicKeyRetriever : (string) => Promise<string>,
-                           sessionStore : SessionStore,
                            expressSessionStore,
                            sessionSecret : string,
                            getEthereumAccountBySeedPhrase : (string) => Promise<{
@@ -81,7 +80,7 @@ const app = express()
     next()
   })
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
-  setupSessionSerialization(passport, {sessionStore: expressSessionStore})
+  setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
   // app.use(async (req, res, next) => {
   //   try {
   //     console.log(111)
@@ -239,7 +238,7 @@ const app = express()
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
-          attrValue: JSON.stringify(req.body.attributeValue),
+          attrValue: req.body.attributeValue,
           identity: req.body.identity
         }))
       }

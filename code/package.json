@@ -21,7 +21,7 @@
       }
     },
     "build:dev": {
-      "command":"node build/main.js",
+      "command":"node --trace-warnings build/main.js",
       "env": {
         "NODE_ENV":"dev"
       }
