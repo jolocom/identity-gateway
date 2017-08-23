@@ -11,7 +11,7 @@ import * as passport from 'passport'
 import * as URL from 'url-parse'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
-import { GatewayIdentityCreator } from './identity-creators'
+import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
 import { VerificationStore } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
@@ -20,13 +20,17 @@ import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
-                           identityCreator, attributeStore, verificationStore,
-                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever,
-                           expressSessionStore, sessionSecret} :
+                           identityCreator, ethereumIdentityCreator,
+                           attributeStore, verificationStore,
+                           attributeVerifier, attributeChecker,
+                           sessionStore, publicKeyRetriever,
+                           expressSessionStore, sessionSecret,
+                           getEthereumAccountBySeedPhrase} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
                            identityCreator : GatewayIdentityCreator,
+                           ethereumIdentityCreator : EthereumIdentityCreator,
                            attributeStore : AttributeStore,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
@@ -34,7 +38,12 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetriever : (string) => Promise<string>,
                            sessionStore : SessionStore,
                            expressSessionStore,
-                           sessionSecret : string})
+                           sessionSecret : string,
+                           getEthereumAccountBySeedPhrase : (string) => Promise<{
+                             walletAddress : string,
+                             identityAddress : string,
+                           }>,
+                          })
 {
 const app = express()
   app.use(session({
@@ -193,7 +202,9 @@ const app = express()
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const verificationId = await verificationStore.storeVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
-          verifierIdentity: req.user.identity, signature: req.body
+          verifierIdentity: req.user.identity,
+          linkedIdentities: req.body.linkedIdentities,
+          signature: req.body.signature
         })
         res.json({verificationId})
       }
@@ -209,9 +220,9 @@ const app = express()
     },
     '/:userName/verify': {
       post: async (req, res) => {
-        console.log('!?!?!?!? verify for ', req.params.userName, req.user.identity)
         await attributeVerifier.verifyAttribute({
           sourceIdentity: req.user.identity,
+          sourceUserId: req.user.id,
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
@@ -231,6 +242,21 @@ const app = express()
           attrValue: JSON.stringify(req.body.attributeValue),
           identity: req.body.identity
         }))
+      }
+    },
+    '/:userName/ethereum/create-identity': {
+      post: async (req, res) => {
+        res.json(await ethereumIdentityCreator.createIdentity({
+          userId: req.user.id,
+          seedPhrase: req.body.seedPhrase,
+          publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
+          identityURL: req.user.identityURL
+        }))
+      }
+    },
+    '/:userName/ethereum': {
+      get: async (req, res) => {
+        res.json(await getEthereumAccountBySeedPhrase(req.body.seedPhrase))
       }
     }
   }

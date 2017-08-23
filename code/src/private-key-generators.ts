@@ -6,6 +6,12 @@ import * as bluebird from 'bluebird'
 import fs = require('mz/fs')
 
 export class GatewayPrivateKeyGenerator {
+  private _privateKeySize : number
+
+  constructor ({privateKeySize} : {privateKeySize : number}) {
+    this._privateKeySize = privateKeySize
+  }
+
   async generate({name, email, passphrase} :
            {name : string, email : string, passphrase : string}) :
            Promise<KeyPair>
@@ -30,7 +36,7 @@ export class GatewayPrivateKeyGenerator {
 
     var options = {
         userIds: [{ name, email }],
-        numBits: process.env.PRIV_KEY_SIZE ? parseInt(process.env.PRIV_KEY_SIZE) : 2048,
+        numBits: this._privateKeySize,
         passphrase: passphrase
     };
 

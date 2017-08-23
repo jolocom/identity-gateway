@@ -1,6 +1,7 @@
 import * as _ from 'lodash'
 import * as crypto from 'crypto'
 import { KeyPair } from './key-pair'
+import { createOrUpdate } from './sequelize/utils'
 
 export interface GatewayIdentityStore {
   storeIdentity({userName, seedPhrase, keyPair})
@@ -8,6 +9,11 @@ export interface GatewayIdentityStore {
   getUserIdByUserName(userName) : Promise<string>
   getKeyPairBySeedPhrase(seedPhrase) : Promise<KeyPair>
   getPublicKeyByUserName(userName) : Promise<string>
+
+  linkIdentity({userId, identities} :
+               {userId : string,
+                identities : Array<{type, identitfier}> | {type, identitfier}}) : Promise<any>
+  getLinkedIdentity({userId, type} : {userId : string, type : string}) : Promise<string>
 }
 
 export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
@@ -35,13 +41,28 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
   async getPublicKeyByUserName(userName) : Promise<string> {
     return ((_.find(this.identities, {userName}) || {}).keyPair || {}).publicKey
   }
+
+  async linkIdentity({userId, identities} :
+                       {userId : string,
+                        identities : Array<{type, identitfier}> | {type, identitfier}})
+  {
+    throw new Error("Not implemented yet")
+  }
+
+  async getLinkedIdentity({userId, type} : {userId : string, type : string}) {
+    if (1)
+      throw new Error("Not implemented yet")
+    return 'shut up, type checking'
+  }
 }
 
 export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
   private _identityModel
+  private _linkedIdentityModel
 
-  constructor({identityModel}) {
+  constructor({identityModel, linkedIdentityModel}) {
     this._identityModel = identityModel
+    this._linkedIdentityModel = linkedIdentityModel
   }
 
   async storeIdentity({userName, seedPhrase, keyPair}) {
@@ -94,5 +115,25 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
   async getPublicKeyByUserName(userName) : Promise<string> {
     const identity = await this._identityModel.findOne({where: {userName}})
     return identity && identity.publicKey
+  }
+
+  async linkIdentity({userId, identities} :
+                       {userId : string,
+                        identities : Array<{type, identitfier}> | {type, identitfier}})
+  {
+    if (!(identities instanceof Array)) {
+      identities = [identities]
+    }
+
+    await Promise.all(identities.map(identity => {
+      return createOrUpdate(this._linkedIdentityModel,
+        {identityId: userId, type: identity.type},
+        {identifier: identity.identitfier}
+      )
+    }))
+  }
+
+  async getLinkedIdentity({userId, type} : {userId : string, type : string}) {
+    return await this._linkedIdentityModel.findOne({where: {identityId: userId, type}})
   }
 }

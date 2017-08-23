@@ -12,6 +12,10 @@ export function defineSequelizeModels(sequelize) {
       privateKey: Sequelize.TEXT,
       publicKey: Sequelize.TEXT,
     },
+    LinkedIdentity: {
+      type: Sequelize.STRING,
+      identitier: Sequelize.STRING,
+    },
     Attribute: {
       type: Sequelize.STRING,
       key: Sequelize.STRING,
@@ -21,7 +25,7 @@ export function defineSequelizeModels(sequelize) {
       identity: Sequelize.STRING,
       signature: Sequelize.TEXT,
     },
-    Rules: {
+    Rule: {
       requester: Sequelize.STRING,
       pattern : Sequelize.STRING,
       read: Sequelize.BOOLEAN,
@@ -37,7 +41,8 @@ export function defineSequelizeModels(sequelize) {
 
   models.Attribute.belongsTo(models.Identity)
   models.Verification.belongsTo(models.Attribute)
-  models.Rules.belongsTo(models.Identity)
+  models.Rule.belongsTo(models.Identity)
+  models.LinkedIdentity.belongsTo(models.Identity)
 
   return models
 }
