@@ -1,3 +1,4 @@
+import * as events from 'events'
 import * as openpgp from 'openpgp'
 import { AttributeStore } from './attribute-store';
 
@@ -6,12 +7,14 @@ export type PublicKeyRetriever = (string) => Promise<string>
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
   private _publicKeyRetriever : PublicKeyRetriever
-  
+  public events : events.EventEmitter
+
   constructor({attributeStore, publicKeyRetriever} :
               {attributeStore : AttributeStore, publicKeyRetriever : PublicKeyRetriever})
   {
     this._attributeStore = attributeStore
     this._publicKeyRetriever = publicKeyRetriever
+    this.events = new events.EventEmitter()
   }
 
   abstract storeVerification({
@@ -31,10 +34,12 @@ export abstract class VerificationStore {
       
     }
 
-    const attrValue = await this._attributeStore.retrieveStringAttribute({userId, type: attrType, id: attrId})
+    const attrValue = (await this._attributeStore.retrieveStringAttribute({
+      userId, type: attrType, id: attrId
+    })).value
     const armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
     const result = await openpgp.verify({
-      message: openpgp.cleartext.readArmored(attrValue),
+      message: new openpgp.cleartext.CleartextMessage(attrValue),
       signature: openpgp.signature.readArmored(signature),
       publicKeys: openpgp.key.readArmored(armoredPublicKey).keys
     })
@@ -63,6 +68,11 @@ export class MemoryVerificationStore extends VerificationStore {
 
     const verificationId = Date.now().toString()
     attrVerifications[verificationId] = {verifierIdentity, signature}
+
+    this.events.emit('verification.stored', {
+      userId, attrType, attrId, verificationId
+    })
+
     return verificationId
   }
 
@@ -99,7 +109,7 @@ export class SequelizeVerificationStore extends VerificationStore {
     if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
       return
     }
-
+    
     const attribute = await this._attributeModel.findOne({where: {
       identityId: userId, type: attrType, key: attrId,
     }})
@@ -107,6 +117,9 @@ export class SequelizeVerificationStore extends VerificationStore {
       attributeId: attribute.id,
       identity: verifierIdentity,
       signature
+    })
+    this.events.emit('verification.stored', {
+      userId, attrType, attrId, verificationId: verification.id
     })
     return verification.id
   }

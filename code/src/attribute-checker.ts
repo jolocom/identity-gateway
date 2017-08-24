@@ -35,7 +35,7 @@ export class AttributeChecker {
       sourceIdentitySignature, identity, attrType, attrId
     })
     const publicKeysAndVerifications = await Promise.all(verifications.map(verification => {
-      const verifierIdentity = openpgp.cleartext.readArmored(verification.verifierIdentity).text
+      const verifierIdentity = verification.verifierIdentity
       return this._publicKeyRetriever(verifierIdentity).then(publicKey => {
         return {publicKey, verification, verifierIdentityURL: verifierIdentity}
       })
