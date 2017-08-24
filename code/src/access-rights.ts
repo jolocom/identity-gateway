@@ -13,7 +13,9 @@ export interface AccessRights {
   //        })
   check({userID, identity, path} : {userID : string, identity : string, path : string})
        : Promise<{read : boolean, write : boolean}>
-  // list() : Promise<{identity, pattern, read, write, expiryDate, oneTimeToken}>
+
+  list({userID} : {userID : string})
+      : Promise<Array<{identity : string, pattern : string, read : boolean, write : boolean}>>
 }
 
 export class MemoryAccessRights implements AccessRights {
@@ -59,6 +61,21 @@ export class MemoryAccessRights implements AccessRights {
     }
   }
 
+  async list({userID} :
+             {userID : string}) :
+   Promise<Array<{identity : string, pattern : string, read : boolean, write : boolean}>>
+   {
+     this.rules[userID] = this.rules[userID] || []
+     return this.rules[userID].map((rule) => {
+       return {
+         identity: rule.requester,
+         read: rule.read,
+         write: rule.write,
+         pattern: rule.pattern
+       }
+     })
+   }
+
   _getNow() {
     return moment()
   }
@@ -89,6 +106,9 @@ export class SequelizeAccessRights implements AccessRights {
       identityId: userID,
       requester: identity
     }})
+
+    console.log(identityRules)
+
     identityRules = _(identityRules)
       .map((rule, idx) => ({...rule, idx}))
       .filter(rule => !rule.token || rule.token === oneTimeToken)
@@ -105,6 +125,24 @@ export class SequelizeAccessRights implements AccessRights {
       write: _.some(identityRules, rule => rule.write)
     }
   }
+
+  async list({userID} :
+             {userID : string}) :
+   Promise<Array<{identity : string, pattern : string, read : boolean, write : boolean}>>
+   {
+     let identityRules = await this._ruleModel.findAll({where: {
+       identityId: userID
+     }})
+
+     return identityRules.map((rule) => {
+       return {
+         identity: rule.requester,
+         read: rule.read,
+         write: rule.write,
+         pattern: rule.pattern
+       }
+     })
+   }
 
   _getNow() {
     return moment()

@@ -2,27 +2,31 @@ import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
 const express = require('express')
+const passportSocketIo = require('passport.socketio')
 const request = require('request');
 const session = require('express-session')
 const uuid = require('uuid/v1')
+const cookieParser = require('cookie-parser')
 import * as passport from 'passport'
 import * as URL from 'url-parse'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
-import { VerificationStore } from './verification-store'
+import { VerificationStore, PublicKeyRetrievers } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
-import { SessionStore } from './session-store'
+// import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 import { EthereumInteraction } from './ethereum-interaction'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
                            attributeStore, verificationStore,
-                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever,
-                           ethereumInteraction, getEthereumAccountBySeedPhrase} :
+                           attributeVerifier, attributeChecker,
+                           publicKeyRetrievers,
+                           expressSessionStore, sessionSecret,
+                           ethereumInteraction, getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
@@ -32,17 +36,20 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
                            attributeChecker : AttributeChecker,
-                           publicKeyRetriever : (string) => Promise<string>,
-                           sessionStore : SessionStore,
+                           publicKeyRetrievers : PublicKeyRetrievers,
+                           expressSessionStore,
+                           sessionSecret : string,
                            ethereumInteraction: EthereumInteraction,
-                           getEthereumAccountBySeedPhrase : (string) => Promise<{
+                           getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
                              identityAddress : string,
-                           }>})
+                           }>,
+                          })
 {
 const app = express()
   app.use(session({
-    secret: 'keyboard cat',
+    secret: sessionSecret,
+    store: expressSessionStore,
     resave: false,
     saveUninitialized: true
   }))
@@ -63,7 +70,7 @@ const app = express()
       })
       req.pipe(request({ qs:req.query, uri: req.query.url })).pipe(res);
   })
-
+  
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
   app.use(bodyParser.text())
@@ -74,8 +81,8 @@ const app = express()
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
     next()
   })
-  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
-  setupSessionSerialization(passport, {sessionStore})
+  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
+  setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
   // app.use(async (req, res, next) => {
   //   try {
   //     console.log(111)
@@ -139,6 +146,14 @@ const app = express()
           })
         }))
         res.send('OK')
+      }
+    },
+    '/:userName/access': {
+      get: async (req, res) => {
+        let rules = await accessRights.list({
+          userID: req.user.id
+        })
+        res.json(rules)
       }
     },
     // '/:userName/access/revoke': {
@@ -233,26 +248,24 @@ const app = express()
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
-          attrValue: JSON.stringify(req.body.attributeValue),
+          attrValue: req.body.attributeValue,
           identity: req.body.identity
         }))
       }
     },
     '/:userName/ethereum/create-identity': {
       post: async (req, res) => {
-        res.json('identity created')
-        // res.json(await ethereumIdentityCreator.createIdentity({
-        //   userId: req.user.id,
-        //   seedPhrase: req.body.seedPhrase,
-        //   publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
-        //   identityURL: req.user.identityURL
-        // }))
+        res.json(await ethereumIdentityCreator.createIdentity({
+          userId: req.user.id,
+          seedPhrase: req.body.seedPhrase,
+          publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
+          identityURL: req.user.identity
+        }))
       }
     },
     '/:userName/ethereum': {
-      post: async (req, res) => {
-        res.json('0xTESTS8b41ba9d01d64016164bf5b51b48440d46d')
-        // res.json(await getEthereumAccountBySeedPhrase(req.body.seedPhrase))
+      get: async (req, res) => {
+        res.json(await getEthereumAccountByUserId(req.user.id))
       }
     },
     '/:userName/ethereum/get-balance': {
@@ -312,4 +325,26 @@ export function accessRightsMiddleware({accessRights, identityStore} :
     }
     res.status(403).send('Access denied')
   }
+}
+
+export function createSocketIO({server, sessionSecret, sessionStore, verificationStore}) {
+  const io = require('socket.io')(server)
+  io.use(passportSocketIo.authorize({
+    key: 'connect.sid',
+    secret: sessionSecret,
+    store: sessionStore,
+    passport,
+    cookieParser: cookieParser
+  }));
+
+  const clients = {}
+  io.on('connection', function(client) {  
+    console.log('Client connected...', client.request.user)
+
+    // client.on('join', function(data) {
+    //     console.log(data)
+    // })
+  })
+
+  return io
 }

@@ -55,11 +55,18 @@ export class EthereumIdentityCreator {
   {
     let wallet = await this._walletManager.register({
       seedPhrase,
-      identityURL,
-      publicKey
+      uri: identityURL,
+      publicKey,
+      pin: this._walletManager._config.pin
     })
-    this._identityStore.linkIdentity({userId, identities: [
-      {type: 'ethereum:wallet', identitfier: wallet.mainAddress},
+
+    let walletAddress = wallet.mainAddress
+    if (walletAddress.indexOf('0x') !== 0) {
+      walletAddress = '0x' + walletAddress
+    }
+
+    await this._identityStore.linkIdentity({userId, identities: [
+      {type: 'ethereum:wallet', identitfier: walletAddress},
       {type: 'ethereum:identity', identitfier: wallet.identityAddress},
     ]})
     return {

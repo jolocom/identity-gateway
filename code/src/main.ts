@@ -1,5 +1,4 @@
 import { AttributeChecker } from './attribute-checker';
-import { MemorySessionStore } from './session-store';
 require('source-map-support').install()
 require('regenerator-runtime/runtime')
 import * as _ from 'lodash'
@@ -9,20 +8,22 @@ import { spawnSync } from 'child_process'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
 import * as Sequelize from 'sequelize'
+import * as redis from 'redis'
+const session = require('express-session')
+const RedisStore = require('connect-redis')(session)
 import { DataSigner } from './data-signer'
 import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
+import { EthereumInteraction } from './ethereum-interaction'
 import { AttributeVerifier } from './attribute-verifier'
 import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store'
 import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store'
-import { MemoryAccessRights } from './access-rights'
+import { MemoryAccessRights, SequelizeAccessRights } from './access-rights'
 import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store'
-import { WalletManager, Wallet } from 'smartwallet-contracts'
+import WalletManager from 'smartwallet-contracts/lib/manager'
+import Wallet from 'smartwallet-contracts/lib/wallet'
 import { defineSequelizeModels } from './sequelize/models'
-
-import { EthereumInteraction } from './ethereum-interaction'
-
-import { createApp } from './app'
+import { createApp, createSocketIO } from './app'
 import * as openpgp from 'openpgp'
 openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
 
@@ -34,7 +35,9 @@ export async function main() : Promise<any> {
   const config = require('../config.json')
 
   try {
-    const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://')
+    const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://', {
+      logging: process.env.LOG_SQL === 'true'
+    })
     await sequelize.authenticate()
 
     const sequelizeModels = defineSequelizeModels(sequelize)
@@ -61,9 +64,18 @@ export async function main() : Promise<any> {
     const attributeStore = new SequelizeAttributeStore({
       attributeModel: sequelizeModels.Attribute
     })
-    const publicKeyRetriever = async (identity) => {
-      return JSON.parse((await request(identity))).publicKey
+    const publicKeyRetrievers = {
+      url: async (identity) => {
+        return JSON.parse((await request(identity))).publicKey
+      },
+      ethereum: async (identity, identityAddress) => {
+        return await walletManager.getPublicKeyByUri({uri: identity, identityAddress})
+      }
     }
+    // const accessRights = new SequelizeAccessRights({
+    //   ruleModel: sequelizeModels.Rule
+    // })
+    const accessRights = new MemoryAccessRights()
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
@@ -107,49 +119,81 @@ export async function main() : Promise<any> {
         method: 'PUT',
         uri: `${identity}/identity/${attrType}/${attrId}/verifications`,
         headers: {
-          'Content-Type': 'text/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          linkedIdenities: sourceLinkedIdentities,
+          linkedIdentities: sourceLinkedIdentities,
           signature: signature.signature
         })
       })
     }
 
-    // const walletManager = new WalletManager(config.ethereum)
-    const walletManager = null
+    let expressSessionStore
+    if (process.env.SESSION_BACKEND !== 'memory') {
+      const redisClient = redis.createClient()
+      expressSessionStore = new RedisStore({
+        client: redisClient
+      })
+    } else {
+      expressSessionStore = new session.MemoryStore()
+    }
 
-    const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
+    let ethereumConfig = config.ethereum
+    if (DEVELOPMENT_MODE) {
+      if (!ethereumConfig) {
+        ethereumConfig = {
+          gethHost: 'http://localhost:8545'
+        }
+      }
+      if (!ethereumConfig.lookupContractAddress) {
+        ethereumConfig.lookupContractAddress = process.env.LOOKUP_CONTRACT_ADDRESS
+      }
+    }
+    if (!ethereumConfig.pin) {
+      ethereumConfig.pin = '1111'
+    }
+    ethereumConfig.debug = process.env.DEBUG_CONTRACTS_LIB === 'true'
+
+    const walletManager = new WalletManager(ethereumConfig)
+    if (DEVELOPMENT_MODE && !ethereumConfig.lookupContractAddress) {
+      await walletManager.setupTestRPC({
+        seedPhrase: 'mandate print cereal style toilet hole cave mom heavy fork network indoor'
+      })
+      console.log(
+        'Deployed test contracts! LookupContract:', 
+        walletManager._config.lookupContractAddress
+      )
+    }
 
     const ethereumInteraction = new EthereumInteraction({walletManager})
-
-    const getEthereumAccountBySeedPhrase = async (seedPhrase : string) => {
-      const wallet = new Wallet(config)
-      await wallet.init(seedPhrase)
+    const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
+    const getEthereumAccountByUserId = async (userId : string) => {
+      const linkedIdentities = await identityStore.getLinkedIdentities({userId})
       return {
-        walletAddress: wallet.mainAddress,
-        identityAddress: wallet.identityAddress,
+        walletAddress: linkedIdentities['ethereum:wallet'],
+        identityAddress: linkedIdentities['ethereum:identity'],
       }
     }
     const getEthereumAccountByUri = async (uri : string) : Promise<{identityAddress, publicKey}> => {
-      return {
-        identityAddress: '0x0', publicKey: 'pkey'
-      }
+      return await walletManager.getAccountInfoByUri({uri})
     }
 
+    const verificationStore = new SequelizeVerificationStore({
+      attributeModel: sequelizeModels.Attribute,
+      verificationModel: sequelizeModels.Verification,
+      attributeStore, publicKeyRetrievers,
+      getEthereumAccountByUri
+    })
+
     const app = createApp({
-      sessionStore: new MemorySessionStore(),
-      accessRights: new MemoryAccessRights(),
+      accessRights,
+      sessionSecret: config.sessionSecret,
+      expressSessionStore,
       identityUrlBuilder,
       identityStore: identityStore,
       attributeStore,
-      publicKeyRetriever,
-      verificationStore: new SequelizeVerificationStore({
-        attributeModel: sequelizeModels.Attribute,
-        verificationModel: sequelizeModels.Verification,
-        attributeStore, publicKeyRetriever,
-        getEthereumAccountByUri
-      }),
+      publicKeyRetrievers,
+      verificationStore,
       identityCreator: new GatewayIdentityCreator({
         identityStore,
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
@@ -165,11 +209,11 @@ export async function main() : Promise<any> {
       }),
       attributeChecker: new AttributeChecker({
         dataSigner: new DataSigner({identityStore}),
-        publicKeyRetriever,
+        publicKeyRetrievers,
         attributeRetriever,
         verificationsRetriever
       }),
-      getEthereumAccountBySeedPhrase
+      getEthereumAccountByUserId
     })
 
     const server = http.createServer(app)
@@ -178,6 +222,13 @@ export async function main() : Promise<any> {
         if (err) { return reject(err) }
         resolve(server)
       })
+    })
+
+    const io = createSocketIO({
+      server,
+      sessionSecret: config.sessionSecret,
+      sessionStore: expressSessionStore,
+      verificationStore,
     })
 
     if (DEVELOPMENT_MODE) {
@@ -192,47 +243,185 @@ export async function main() : Promise<any> {
 }
 
 async function devPostInit() {
-  const gatewayURL = 'http://localhost:' + (process.env.IDENTITY_PORT || '5678')
-  const firstUser = {
-    userName: process.env.FIRST_USER_NAME || 'joe',
-    seedPhrase: process.env.FIRST_USER_SEED_PHRASE || 'user1 seed phrase'
-  }
-  const secondUser = {
-    create: process.env.SECOND_USER_SEED_PHRASE || process.env.CREATE_SECOND_USER === 'true',
-    userName: process.env.SECOND_USER_NAME || 'jane',
-    seedPhrase: process.env.SECOND_USER_SEED_PHRASE || 'user2 seed phrase'
-  }
+  try {
+    const logStep = (msg) => {
+      console.log('= DEV POST INIT:', msg, '=')
+    }
 
-  const cookieJar_1 = request.jar()
-  const session_1 = request.defaults({jar: cookieJar_1})
-  const cookieJar_2 = request.jar()
-  const session_2 = request.defaults({jar: cookieJar_2})
+    logStep('Start')
 
-  await session_1({
-    method: 'PUT',
-    uri: `${gatewayURL}/${firstUser.userName}`,
-    form: {seedPhrase: firstUser.seedPhrase}
-  })
-  await session_1({
-    method: 'POST',
-    uri: gatewayURL + '/login',
-    form: {seedPhrase: firstUser.seedPhrase}
-  })
+    const gatewayURL = 'http://localhost:' + (process.env.IDENTITY_PORT || '5678')
+    const testEthereumIdentity = process.env.TEST_ETHEREUM_IDENTITY === 'true'
+    const testAttributeVerification = process.env.TEST_ATTRIBUTE_VERIFICATION === 'true'
+    const firstUser = {
+      userName: process.env.FIRST_USER_NAME || 'joe',
+      seedPhrase: process.env.FIRST_USER_SEED_PHRASE || (
+        testEthereumIdentity
+        ? 'mandate print cereal style toilet hole cave mom heavy fork network indoor'
+        : 'user1 seed phrase'
+      )
+    }
+    const createSecondUser = testAttributeVerification ||
+      process.env.SECOND_USER_SEED_PHRASE ||
+      process.env.CREATE_SECOND_USER === 'true'
+    const secondUser = {
+      create: createSecondUser,
+      userName: process.env.SECOND_USER_NAME || 'jane',
+      seedPhrase: process.env.SECOND_USER_SEED_PHRASE || (
+        testEthereumIdentity
+        ? 'acquire coyote coyote polar unhappy piano twelve great infant creek brief today'
+        : 'user2 seed phrase'
+      )
+    }
+    
+    const cookieJar_1 = request.jar()
+    const session_1 = request.defaults({jar: cookieJar_1})
+    const cookieJar_2 = request.jar()
+    const session_2 = request.defaults({jar: cookieJar_2})
+    
+    logStep('Creating first user')
 
-  if (secondUser.create) {
-    await session_2({
+    await session_1({
       method: 'PUT',
-      uri: `${gatewayURL}/${secondUser.userName}`,
-      form: {seedPhrase: secondUser.seedPhrase}
+      uri: `${gatewayURL}/${firstUser.userName}`,
+      form: {seedPhrase: firstUser.seedPhrase}
     })
-    await session_2({
+
+    logStep('Logging in first user')
+
+    await session_1({
       method: 'POST',
       uri: gatewayURL + '/login',
-      form: {seedPhrase: secondUser.seedPhrase}
+      form: {seedPhrase: firstUser.seedPhrase}
     })
+
+    if (secondUser.create) {
+      logStep('Creating second user')
+
+      await session_2({
+        method: 'PUT',
+        uri: `${gatewayURL}/${secondUser.userName}`,
+        form: {seedPhrase: secondUser.seedPhrase}
+      })
+
+      logStep('Logging in second user')
+
+      await session_2({
+        method: 'POST',
+        uri: gatewayURL + '/login',
+        form: {seedPhrase: secondUser.seedPhrase}
+      })
+    }
+
+    if (testEthereumIdentity) {
+      logStep('Creating Ethereum identity for first user')
+
+      await session_2({
+        method: 'POST',
+        uri: `${gatewayURL}/${secondUser.userName}/ethereum/create-identity`,
+        form: {seedPhrase: secondUser.seedPhrase}
+      })
+
+      logStep('Getting Ethereum identity info for first user')
+
+      console.log('Ethereum identity info', await session_2({
+        method: 'GET',
+        uri: `${gatewayURL}/${secondUser.userName}/ethereum`,
+        form: {seedPhrase: secondUser.seedPhrase}
+      }))
+    }
+
+    if (testAttributeVerification) {
+      logStep('Storing e-mail attribute')
+
+      await session_1({
+        method: 'PUT',
+        uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+        body: '[["value","vincent@shishkabab.net"]]',
+        headers: {'Content-Type': 'application/json'}
+      })
+
+      logStep('Retrieving e-mail attribute')
+
+      console.log('Stored email attribute', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+      }))
+
+      logStep('Granting access to e-mail attribute')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/access/grant`,
+        form: {
+          identity: `${gatewayURL}/${secondUser.userName}`,
+          pattern: '/identity/email/primary',
+          read: 'true',
+          write: 'false'
+        },
+      })
+
+      logStep('Granting write access to e-mail attribute verifications')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/access/grant`,
+        form: {
+          identity: `${gatewayURL}/${secondUser.userName}`,
+          pattern: '/identity/email/primary/verifications',
+          read: 'true',
+          write: 'true'
+        }
+      })
+
+      logStep('Verifying e-mail attribute')
+
+      await session_2({
+        method: 'POST',
+        uri: `${gatewayURL}/${secondUser.userName}/verify`,
+        form: {
+          identity: `${gatewayURL}/${firstUser.userName}`,
+          seedPhrase: secondUser.seedPhrase,
+          attributeType: 'email',
+          attributeId: 'primary',
+          attributeValue: '[["value","vincent@shishkabab.net"]]'
+        }
+      })
+
+      logStep('Retrieving e-mail attribute verifications')
+
+      console.log('Email attribute verifications', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary/verifications`,
+      }))
+
+      logStep('Checking e-mail attribute')
+
+      console.log('Email attribute check result', await session_2({
+        method: 'POST',
+        uri: `${gatewayURL}/${secondUser.userName}/check`,
+        form: {
+          identity: `${gatewayURL}/${firstUser.userName}`,
+          seedPhrase: secondUser.seedPhrase,
+          attributeType: 'email',
+          attributeId: 'primary',
+          attributeValue: '[["value","vincent@shishkabab.net"]]'
+        }
+      }))
+    }
+
+    logStep('Finished')
+  } catch (e) {
+    console.error(e)
+    console.trace()
   }
 }
 
 if(require.main === module){
   main()
 }
+
+process.on('unhandledRejection', (reason, p) => {
+  console.log('Unhandled Rejection at: ', p, 'reason:', reason);
+  // application specific logging, throwing an error, or other logic here
+});
