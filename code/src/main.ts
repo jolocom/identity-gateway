@@ -118,11 +118,10 @@ export async function main() : Promise<any> {
 
     // const walletManager = new WalletManager(config.ethereum)
     const walletManager = null
-    const wallet = new Wallet(config)
 
     const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
 
-    const ethereumInteraction = new EthereumInteraction({wallet})
+    const ethereumInteraction = new EthereumInteraction({walletManager})
 
     const getEthereumAccountBySeedPhrase = async (seedPhrase : string) => {
       const wallet = new Wallet(config)

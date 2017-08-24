@@ -1,31 +1,23 @@
 export class EthereumInteraction {
   private _walletManager
 
-  constructor({wallet} :
-              {wallet})
+  constructor({walletManager})
   {
-    this._wallet = wallet
+    this._walletManager = walletManager
   }
 
   async getEtherBalance({mainAddress} : {mainAddress : string})
   {
-    let wallet = await this._wallet.getBalance({
-      mainAddress
-    })
-    return {
-      balanceEther: '33.71'
-      // balanceEther: wallet.amountOfEther
-    }
+    return await this._walletManager.getBalance({mainAddress})
   }
 
-  async sendEther({receiver, amountEther, data, pin, gasInWei}) :
-  Promise<{result}>
+  async sendEther({seedPhrase, receiver, amountEther, data, gasInWei}) :
+    Promise<{txHash}>
   {
-    let wallet = await this._wallet.sendEther({
-      receiver, amountEther, data, pin, gasInWei
+    const wallet = this._walletManager.login({seedPhrase, pin: '1111'})
+    const txHash = await wallet.sendEther({
+      receiver, amountEther, data, gasInWei, pin: '1111'
     })
-    return {
-      result: wallet.result
-    }
+    return {txHash}
   }
 }

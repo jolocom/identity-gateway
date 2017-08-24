@@ -22,7 +22,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
                            attributeStore, verificationStore,
                            attributeVerifier, attributeChecker, sessionStore, publicKeyRetriever,
-                           EthereumInteraction, getEthereumAccountBySeedPhrase} :
+                           ethereumInteraction, getEthereumAccountBySeedPhrase} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
@@ -257,20 +257,21 @@ const app = express()
     },
     '/:userName/ethereum/get-balance': {
       post: async (req, res) => {
-        res.json('33.71')
-        // res.json(await ethereumInteraction.getEtherBalance(req.body.mainAddress))
+        res.json({
+          ether: await ethereumInteraction.getEtherBalance(req.body.mainAddress)
+        })
       }
     },
     '/:userName/ethereum/send-ether': {
       post: async (req, res) => {
-        res.json('send to 0xBLABLABLA')
-        // res.json(await ethereumInteraction.sendEther({
-        //   receiver: req.body.receiver,
-        //   amountEther: req.body.amountEther,
-          // data: req.body.data,
-          // pin: req.body.pin,
-          // gasInWei: req.body.gasInWei
-        // }))
+        await ethereumInteraction.sendEther({
+          seedPhrase: req.body.seedPhrase,
+          receiver: req.body.receiver,
+          amountEther: req.body.amountEther,
+          data: req.body.data,
+          gasInWei: req.body.gasInWei
+        })
+        res.send('OK')
       }
     }
   }
