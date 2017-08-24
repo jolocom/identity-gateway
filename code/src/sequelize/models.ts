@@ -14,7 +14,7 @@ export function defineSequelizeModels(sequelize) {
     },
     LinkedIdentity: {
       type: Sequelize.STRING,
-      identitier: Sequelize.STRING,
+      identifier: Sequelize.STRING,
     },
     Attribute: {
       type: Sequelize.STRING,

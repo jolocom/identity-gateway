@@ -25,7 +25,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier, attributeChecker,
                            publicKeyRetrievers,
                            expressSessionStore, sessionSecret,
-                           getEthereumAccountBySeedPhrase} :
+                           getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
@@ -38,7 +38,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetrievers : PublicKeyRetrievers,
                            expressSessionStore,
                            sessionSecret : string,
-                           getEthereumAccountBySeedPhrase : (string) => Promise<{
+                           getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
                              identityAddress : string,
                            }>,
@@ -249,13 +249,13 @@ const app = express()
           userId: req.user.id,
           seedPhrase: req.body.seedPhrase,
           publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
-          identityURL: req.user.identityURL
+          identityURL: req.user.identity
         }))
       }
     },
     '/:userName/ethereum': {
       get: async (req, res) => {
-        res.json(await getEthereumAccountBySeedPhrase(req.body.seedPhrase))
+        res.json(await getEthereumAccountByUserId(req.user.id))
       }
     }
   }

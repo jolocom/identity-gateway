@@ -36,16 +36,17 @@ export class AttributeChecker {
     const verifications = await this._verificationsRetriever({
       sourceIdentitySignature, identity, attrType, attrId
     })
+
     const publicKeysAndVerifications = await Promise.all(verifications.map(async verification => {
       const verifierIdentity = verification.verifierIdentity
 
       let publicKey
       if (verification.linkedIdentities.ethereum) {
-        publicKey = this._publicKeyRetrievers.ethereum(
+        publicKey = await this._publicKeyRetrievers.ethereum(
           verifierIdentity, verification.linkedIdentities.ethereum
         )
       } else {
-        publicKey = this._publicKeyRetrievers.url(verifierIdentity)
+        publicKey = await this._publicKeyRetrievers.url(verifierIdentity)
       }
 
       return {publicKey, verification, verifierIdentityURL: verifierIdentity}
