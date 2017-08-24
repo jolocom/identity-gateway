@@ -14,6 +14,7 @@ const RedisStore = require('connect-redis')(session)
 import { DataSigner } from './data-signer'
 import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
+import { EthereumInteraction } from './ethereum-interaction'
 import { AttributeVerifier } from './attribute-verifier'
 import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store'
 import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store'
@@ -71,9 +72,10 @@ export async function main() : Promise<any> {
         return await walletManager.getPublicKeyByUri({uri: identity, identityAddress})
       }
     }
-    const accessRights = new SequelizeAccessRights({
-      ruleModel: sequelizeModels.Rule
-    })
+    // const accessRights = new SequelizeAccessRights({
+    //   ruleModel: sequelizeModels.Rule
+    // })
+    const accessRights = new MemoryAccessRights()
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
@@ -163,6 +165,7 @@ export async function main() : Promise<any> {
       )
     }
 
+    const ethereumInteraction = new EthereumInteraction({walletManager})
     const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
     const getEthereumAccountByUserId = async (userId : string) => {
       const linkedIdentities = await identityStore.getLinkedIdentities({userId})
@@ -197,6 +200,7 @@ export async function main() : Promise<any> {
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
       ethereumIdentityCreator,
+      ethereumInteraction,
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
         attributeRetriever,
@@ -239,7 +243,6 @@ export async function main() : Promise<any> {
 }
 
 async function devPostInit() {
-
   try {
     const logStep = (msg) => {
       console.log('= DEV POST INIT:', msg, '=')

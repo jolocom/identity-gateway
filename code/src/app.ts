@@ -18,6 +18,7 @@ import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
 // import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
+import { EthereumInteraction } from './ethereum-interaction'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
@@ -25,7 +26,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier, attributeChecker,
                            publicKeyRetrievers,
                            expressSessionStore, sessionSecret,
-                           getEthereumAccountByUserId} :
+                           ethereumInteraction, getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
@@ -38,6 +39,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetrievers : PublicKeyRetrievers,
                            expressSessionStore,
                            sessionSecret : string,
+                           ethereumInteraction: EthereumInteraction,
                            getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
                              identityAddress : string,
@@ -264,6 +266,25 @@ const app = express()
     '/:userName/ethereum': {
       get: async (req, res) => {
         res.json(await getEthereumAccountByUserId(req.user.id))
+      }
+    },
+    '/:userName/ethereum/get-balance': {
+      post: async (req, res) => {
+        res.json({
+          ether: await ethereumInteraction.getEtherBalance(req.body.mainAddress)
+        })
+      }
+    },
+    '/:userName/ethereum/send-ether': {
+      post: async (req, res) => {
+        await ethereumInteraction.sendEther({
+          seedPhrase: req.body.seedPhrase,
+          receiver: req.body.receiver,
+          amountEther: req.body.amountEther,
+          data: req.body.data,
+          gasInWei: req.body.gasInWei
+        })
+        res.send('OK')
       }
     }
   }
