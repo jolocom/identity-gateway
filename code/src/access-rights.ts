@@ -66,7 +66,14 @@ export class MemoryAccessRights implements AccessRights {
    Promise<Array<{identity : string, pattern : string, read : boolean, write : boolean}>>
    {
      this.rules[userID] = this.rules[userID] || []
-     return this.rules[userID]
+     return this.rules[userID].map((rule) => {
+       return {
+         identity: rule.requester,
+         read: rule.read,
+         write: rule.write,
+         pattern: rule.pattern
+       }
+     })
    }
 
   _getNow() {
@@ -124,7 +131,14 @@ export class SequelizeAccessRights implements AccessRights {
        identityId: userID
      }})
 
-     return identityRules
+     return identityRules.map((rule) => {
+       return {
+         identity: rule.requester,
+         read: rule.read,
+         write: rule.write,
+         pattern: rule.pattern
+       }
+     })
    }
 
   _getNow() {
