@@ -3,6 +3,10 @@ import * as crypto from 'crypto'
 import { KeyPair } from './key-pair'
 import { createOrUpdate } from './sequelize/utils'
 
+export interface LinkedIdentitiesMap {
+  [type : string] : string
+}
+
 export interface GatewayIdentityStore {
   storeIdentity({userName, seedPhrase, keyPair})
   getUserBySeedPhrase(seedPhrase) : Promise<{id, userName}>
@@ -14,6 +18,7 @@ export interface GatewayIdentityStore {
                {userId : string,
                 identities : Array<{type, identitfier}> | {type, identitfier}}) : Promise<any>
   getLinkedIdentity({userId, type} : {userId : string, type : string}) : Promise<string>
+  getLinkedIdentities({userId} : {userId : string}) : Promise<LinkedIdentitiesMap>
 }
 
 export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
@@ -53,6 +58,12 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
     if (1)
       throw new Error("Not implemented yet")
     return 'shut up, type checking'
+  }
+
+  async getLinkedIdentities({userId} : {userId : string}) {
+    if (1)
+      throw new Error("Not implemented yet")
+    return {}
   }
 }
 
@@ -125,15 +136,30 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
       identities = [identities]
     }
 
-    await Promise.all(identities.map(identity => {
-      return createOrUpdate(this._linkedIdentityModel,
+    for(let identity of identities) {
+      await createOrUpdate(this._linkedIdentityModel,
         {identityId: userId, type: identity.type},
         {identifier: identity.identitfier}
       )
-    }))
+    }
+
+    // await Promise.all(identities.map(identity => {
+    //   return createOrUpdate(this._linkedIdentityModel,
+    //     {identityId: userId, type: identity.type},
+    //     {identifier: identity.identitfier}
+    //   )
+    // }))
   }
 
   async getLinkedIdentity({userId, type} : {userId : string, type : string}) {
     return await this._linkedIdentityModel.findOne({where: {identityId: userId, type}})
+  }
+
+  async getLinkedIdentities({userId} : {userId : string}) {
+    return await _.fromPairs(
+      (await this._linkedIdentityModel
+        .findAll({where: {identityId: userId}})
+      ).map(identity => [identity.type, identity.identifier])
+      )
   }
 }

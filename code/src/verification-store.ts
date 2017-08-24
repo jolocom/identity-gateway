@@ -3,17 +3,18 @@ import * as openpgp from 'openpgp'
 import { AttributeStore } from './attribute-store';
 
 export type PublicKeyRetriever = (string) => Promise<string>
+export interface PublicKeyRetrievers { [type : string] : (...args) => Promise<string> }
 
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
-  private _publicKeyRetriever : PublicKeyRetriever
+  private _publicKeyRetrievers : PublicKeyRetrievers
   public events : events.EventEmitter
 
-  constructor({attributeStore, publicKeyRetriever} :
-              {attributeStore : AttributeStore, publicKeyRetriever : PublicKeyRetriever})
+  constructor({attributeStore, publicKeyRetrievers} :
+              {attributeStore : AttributeStore, publicKeyRetrievers : PublicKeyRetrievers})
   {
     this._attributeStore = attributeStore
-    this._publicKeyRetriever = publicKeyRetriever
+    this._publicKeyRetrievers = publicKeyRetrievers
     this.events = new events.EventEmitter()
   }
 
@@ -30,14 +31,16 @@ export abstract class VerificationStore {
     userId, attrType, attrId,
     verifierIdentity, linkedIdentities, signature
   }) {
+    let armoredPublicKey
     if (linkedIdentities && linkedIdentities.ethereum) {
-      
+      armoredPublicKey = linkedIdentities.ethereum.publicKey
+    } else {
+      armoredPublicKey = this._publicKeyRetrievers.url(verifierIdentity)
     }
 
     const attrValue = (await this._attributeStore.retrieveStringAttribute({
       userId, type: attrType, id: attrId
     })).value
-    const armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
     const result = await openpgp.verify({
       message: new openpgp.cleartext.CleartextMessage(attrValue),
       signature: openpgp.signature.readArmored(signature),
@@ -90,21 +93,21 @@ export class SequelizeVerificationStore extends VerificationStore {
   protected _getEthereumAccountByUri : (uri : string) => Promise<{identityAddress, publicKey}>
 
   constructor({attributeModel, verificationModel, attributeStore,
-               publicKeyRetriever, getEthereumAccountByUri} :
+               publicKeyRetrievers, getEthereumAccountByUri} :
               {attributeModel, verificationModel, attributeStore : AttributeStore,
-               publicKeyRetriever : PublicKeyRetriever,
+               publicKeyRetrievers : PublicKeyRetrievers,
                getEthereumAccountByUri : (uri : string) => Promise<{identityAddress, publicKey}>})
   {
-    super({attributeStore, publicKeyRetriever})
+    super({attributeStore, publicKeyRetrievers})
     this._attributeModel = attributeModel
     this._verificationModel = verificationModel
     this._getEthereumAccountByUri = getEthereumAccountByUri
   }
 
   async storeVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature}) {
-    // linkedIdentites = linkedIdentites || {}
-    // linkedIdentites.ethereum = linkedIdentites.ethereum &&
-    //   await this._getEthereumAccountByUri(verifierIdentity)
+    linkedIdentities = linkedIdentities || {}
+    linkedIdentities.ethereum = linkedIdentities.ethereum &&
+      await this._getEthereumAccountByUri(verifierIdentity)
 
     if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
       return
@@ -116,6 +119,9 @@ export class SequelizeVerificationStore extends VerificationStore {
     const verification = await this._verificationModel.create({
       attributeId: attribute.id,
       identity: verifierIdentity,
+      linkedIdentities: JSON.stringify({
+        ethereum: linkedIdentities.ethereum ? linkedIdentities.ethereum.identityAddress : null
+      }),
       signature
     })
     this.events.emit('verification.stored', {
@@ -137,6 +143,7 @@ export class SequelizeVerificationStore extends VerificationStore {
       verifications[verification.id] = {
         verifierIdentity: verification.identity,
         signature: verification.signature,
+        linkedIdentities: JSON.parse(verification.linkedIdentities)
       }
     })
 
