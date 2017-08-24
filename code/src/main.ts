@@ -314,7 +314,7 @@ async function devPostInit() {
     }
 
     if (testEthereumIdentity) {
-      logStep('Creating Ethereum identity for first user')
+      logStep('Creating Ethereum identity for second user')
 
       await session_2({
         method: 'POST',
@@ -324,10 +324,21 @@ async function devPostInit() {
 
       logStep('Getting Ethereum identity info for first user')
 
-      console.log('Ethereum identity info', await session_2({
+      let ethereumInfo = await session_2({
         method: 'GET',
         uri: `${gatewayURL}/${secondUser.userName}/ethereum`,
         form: {seedPhrase: secondUser.seedPhrase}
+      })
+      if (typeof ethereumInfo === 'string') {
+        ethereumInfo = JSON.parse(ethereumInfo)
+      }
+
+      console.log('Ethereum identity info', ethereumInfo)
+
+      console.log('Ethereum balance:', await session_2({
+        method: 'POST',
+        uri: `${gatewayURL}/${secondUser.userName}/ethereum/get-balance`,
+        form: {walletAddress: ethereumInfo.walletAddress}
       }))
     }
 

@@ -271,7 +271,7 @@ const app = express()
     '/:userName/ethereum/get-balance': {
       post: async (req, res) => {
         res.json({
-          ether: await ethereumInteraction.getEtherBalance(req.body.mainAddress)
+          ether: await ethereumInteraction.getEtherBalance({walletAddress: req.body.walletAddress})
         })
       }
     },

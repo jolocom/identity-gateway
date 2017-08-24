@@ -6,9 +6,10 @@ export class EthereumInteraction {
     this._walletManager = walletManager
   }
 
-  async getEtherBalance({mainAddress} : {mainAddress : string})
+  async getEtherBalance({walletAddress} : {walletAddress : string})
   {
-    return await this._walletManager.getBalance({mainAddress})
+    console.log(walletAddress)
+    return await this._walletManager.getBalance({mainAddress: walletAddress})
   }
 
   async sendEther({seedPhrase, receiver, amountEther, data, gasInWei}) :
