@@ -8,17 +8,19 @@ import { spawnSync } from 'child_process'
 import * as bluebird from 'bluebird'
 import * as request from 'request-promise-native'
 import * as Sequelize from 'sequelize'
+import * as redis from 'redis'
 const session = require('express-session')
-import { DataSigner } from './data-signer';
-import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators';
+const RedisStore = require('connect-redis')(session)
+import { DataSigner } from './data-signer'
+import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
-import { AttributeVerifier } from './attribute-verifier';
-import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store';
-import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store';
-import { MemoryAccessRights } from './access-rights';
-import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store';
+import { AttributeVerifier } from './attribute-verifier'
+import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store'
+import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store'
+import { MemoryAccessRights } from './access-rights'
+import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store'
 import { WalletManager, Wallet } from 'smartwallet-contracts'
-import { defineSequelizeModels } from './sequelize/models';
+import { defineSequelizeModels } from './sequelize/models'
 import { createApp, createSocketIO } from './app'
 import * as openpgp from 'openpgp'
 openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
@@ -115,7 +117,15 @@ export async function main() : Promise<any> {
       })
     }
 
-    const expressSessionStore = new session.MemoryStore()
+    let expressSessionStore
+    if (process.env.SESSION_BACKEND !== 'memory') {
+      const redisClient = redis.createClient()
+      expressSessionStore = new RedisStore({
+        client: redisClient
+      })
+    } else {
+      expressSessionStore = new session.MemoryStore()
+    }
 
     // const walletManager = new WalletManager(config.ethereum)
     const walletManager = null
