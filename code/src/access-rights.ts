@@ -7,10 +7,10 @@ export interface AccessRights {
         {userID : string, identity : string, pattern : string,
          read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
         })
-  // revoke({userID, identity, oneTimeToken, pattern, read, write} :
-  //        {userID : string, identity : string, pattern : string,
-  //         read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
-  //        })
+  revoke({userID, identity, oneTimeToken, pattern, read, write} :
+         {userID : string, identity : string, pattern : string,
+          read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
+         })
   check({userID, identity, path} : {userID : string, identity : string, path : string})
        : Promise<{read : boolean, write : boolean}>
 
@@ -76,6 +76,14 @@ export class MemoryAccessRights implements AccessRights {
      })
    }
 
+   revoke({userID, identity, oneTimeToken, pattern, read, write} :
+          {userID : string, identity : string, pattern : string,
+           read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
+          })
+          {
+            //TODO memory implementation
+          }
+
   _getNow() {
     return moment()
   }
@@ -102,6 +110,7 @@ export class SequelizeAccessRights implements AccessRights {
               {userID : string, identity : string, path : string, oneTimeToken? : string}) :
     Promise<{read : boolean, write : boolean}>
   {
+    identity = normalizedIdentity(identity)
     let identityRules = await this._ruleModel.findAll({where: {
       identityId: userID,
       requester: identity
@@ -140,6 +149,33 @@ export class SequelizeAccessRights implements AccessRights {
        }
      })
    }
+
+   async revoke({userID, identity, oneTimeToken, pattern, read, write} :
+          {userID : string, identity : string, pattern : string,
+           read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
+          })
+          {
+            identity = normalizedIdentity(identity)
+            if(read==false && write==false){
+              await this._ruleModel.destroy({where: {
+                identityId: userID,
+                pattern: pattern,
+                requester: identity
+              }})
+            }else{
+              await this._ruleModel.update(
+              {
+                read: read,
+                write: write
+              },
+              {where: {
+                identityId: userID,
+                pattern: pattern,
+                requester: identity
+                }
+              })
+            }
+          }
 
   _getNow() {
     return moment()

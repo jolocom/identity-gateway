@@ -146,6 +146,18 @@ const app = express()
         res.send('OK')
       }
     },
+    '/:userName/access/revoke': {
+      post: async (req, res) => {
+        await accessRights.revoke({
+          userID: req.user.id,
+          identity: req.body.requester,
+          pattern: req.body.pattern,
+          read: req.body.read,
+          write: req.body.write
+        })
+        res.send('OK')
+      }
+    },
     '/:userName/access': {
       get: async (req, res) => {
         let rules = await accessRights.list({
