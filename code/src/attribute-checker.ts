@@ -37,7 +37,7 @@ export class AttributeChecker {
       sourceIdentitySignature, identity, attrType, attrId
     })
     const publicKeysAndVerifications = await Promise.all(verifications.map(async verification => {
-      const verifierIdentity = openpgp.cleartext.readArmored(verification.verifierIdentity).text
+      const verifierIdentity = verification.verifierIdentity
 
       let publicKey
       if (verification.linkedIdentities.ethereum) {

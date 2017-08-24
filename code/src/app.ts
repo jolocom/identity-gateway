@@ -2,9 +2,11 @@ import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
 const express = require('express')
+const passportSocketIo = require('passport.socketio')
 const request = require('request');
 const session = require('express-session')
 const uuid = require('uuid/v1')
+const cookieParser = require('cookie-parser')
 import * as passport from 'passport'
 import * as URL from 'url-parse'
 import { AccessRights } from './access-rights'
@@ -14,13 +16,15 @@ import { AttributeStore } from './attribute-store'
 import { VerificationStore, PublicKeyRetrievers } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
-import { SessionStore } from './session-store'
+// import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
                            attributeStore, verificationStore,
-                           attributeVerifier, attributeChecker, sessionStore, publicKeyRetrievers,
+                           attributeVerifier, attributeChecker,
+                           publicKeyRetrievers,
+                           expressSessionStore, sessionSecret,
                            getEthereumAccountBySeedPhrase} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
@@ -32,15 +36,18 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier : AttributeVerifier,
                            attributeChecker : AttributeChecker,
                            publicKeyRetrievers : PublicKeyRetrievers,
-                           sessionStore : SessionStore,
+                           expressSessionStore,
+                           sessionSecret : string,
                            getEthereumAccountBySeedPhrase : (string) => Promise<{
                              walletAddress : string,
                              identityAddress : string,
-                           }>})
+                           }>,
+                          })
 {
 const app = express()
   app.use(session({
-    secret: 'keyboard cat',
+    secret: sessionSecret,
+    store: expressSessionStore,
     resave: false,
     saveUninitialized: true
   }))
@@ -61,7 +68,7 @@ const app = express()
       })
       req.pipe(request({ qs:req.query, uri: req.query.url })).pipe(res);
   })
-
+  
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
   app.use(bodyParser.text())
@@ -73,7 +80,7 @@ const app = express()
     next()
   })
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
-  setupSessionSerialization(passport, {sessionStore})
+  setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
   // app.use(async (req, res, next) => {
   //   try {
   //     console.log(111)
@@ -231,7 +238,7 @@ const app = express()
           seedPhrase: req.body.seedPhrase,
           attrType: req.body.attributeType,
           attrId: req.body.attributeId,
-          attrValue: JSON.stringify(req.body.attributeValue),
+          attrValue: req.body.attributeValue,
           identity: req.body.identity
         }))
       }
@@ -289,4 +296,26 @@ export function accessRightsMiddleware({accessRights, identityStore} :
     }
     res.status(403).send('Access denied')
   }
+}
+
+export function createSocketIO({server, sessionSecret, sessionStore, verificationStore}) {
+  const io = require('socket.io')(server)
+  io.use(passportSocketIo.authorize({
+    key: 'connect.sid',
+    secret: sessionSecret,
+    store: sessionStore,
+    passport,
+    cookieParser: cookieParser
+  }));
+
+  const clients = {}
+  io.on('connection', function(client) {  
+    console.log('Client connected...', client.request.user)
+
+    // client.on('join', function(data) {
+    //     console.log(data)
+    // })
+  })
+
+  return io
 }

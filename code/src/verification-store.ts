@@ -1,3 +1,4 @@
+import * as events from 'events'
 import * as openpgp from 'openpgp'
 import { AttributeStore } from './attribute-store';
 
@@ -6,13 +7,15 @@ export interface PublicKeyRetrievers { [type : string] : (...args) => Promise<st
 
 export abstract class VerificationStore {
   private _attributeStore : AttributeStore
-  private _publicKeyRetriever : PublicKeyRetriever
-  
-  constructor({attributeStore, publicKeyRetriever} :
-              {attributeStore : AttributeStore, publicKeyRetriever : PublicKeyRetriever})
+  private _publicKeyRetrievers : PublicKeyRetrievers
+  public events : events.EventEmitter
+
+  constructor({attributeStore, publicKeyRetrievers} :
+              {attributeStore : AttributeStore, publicKeyRetrievers : PublicKeyRetrievers})
   {
     this._attributeStore = attributeStore
-    this._publicKeyRetriever = publicKeyRetriever
+    this._publicKeyRetrievers = publicKeyRetrievers
+    this.events = new events.EventEmitter()
   }
 
   abstract storeVerification({
@@ -28,17 +31,18 @@ export abstract class VerificationStore {
     userId, attrType, attrId,
     verifierIdentity, linkedIdentities, signature
   }) {
-    const attrValue = await this._attributeStore.retrieveStringAttribute({userId, type: attrType, id: attrId})
-
     let armoredPublicKey
     if (linkedIdentities && linkedIdentities.ethereum) {
       armoredPublicKey = linkedIdentities.ethereum.publicKey
     } else {
-      armoredPublicKey = this._publicKeyRetriever(verifierIdentity)
+      armoredPublicKey = this._publicKeyRetrievers.url(verifierIdentity)
     }
 
+    const attrValue = (await this._attributeStore.retrieveStringAttribute({
+      userId, type: attrType, id: attrId
+    })).value
     const result = await openpgp.verify({
-      message: openpgp.cleartext.readArmored(attrValue),
+      message: new openpgp.cleartext.CleartextMessage(attrValue),
       signature: openpgp.signature.readArmored(signature),
       publicKeys: openpgp.key.readArmored(armoredPublicKey).keys
     })
@@ -67,6 +71,11 @@ export class MemoryVerificationStore extends VerificationStore {
 
     const verificationId = Date.now().toString()
     attrVerifications[verificationId] = {verifierIdentity, signature}
+
+    this.events.emit('verification.stored', {
+      userId, attrType, attrId, verificationId
+    })
+
     return verificationId
   }
 
@@ -84,12 +93,12 @@ export class SequelizeVerificationStore extends VerificationStore {
   protected _getEthereumAccountByUri : (uri : string) => Promise<{identityAddress, publicKey}>
 
   constructor({attributeModel, verificationModel, attributeStore,
-               publicKeyRetriever, getEthereumAccountByUri} :
+               publicKeyRetrievers, getEthereumAccountByUri} :
               {attributeModel, verificationModel, attributeStore : AttributeStore,
-               publicKeyRetriever : PublicKeyRetriever,
+               publicKeyRetrievers : PublicKeyRetrievers,
                getEthereumAccountByUri : (uri : string) => Promise<{identityAddress, publicKey}>})
   {
-    super({attributeStore, publicKeyRetriever})
+    super({attributeStore, publicKeyRetrievers})
     this._attributeModel = attributeModel
     this._verificationModel = verificationModel
     this._getEthereumAccountByUri = getEthereumAccountByUri
@@ -103,7 +112,7 @@ export class SequelizeVerificationStore extends VerificationStore {
     if (!this.checkVerification({userId, attrType, attrId, verifierIdentity, linkedIdentities, signature})) {
       return
     }
-
+    
     const attribute = await this._attributeModel.findOne({where: {
       identityId: userId, type: attrType, key: attrId,
     }})
@@ -114,6 +123,9 @@ export class SequelizeVerificationStore extends VerificationStore {
         ethereum: linkedIdentities.ethereum ? linkedIdentities.ethereum.identityAddress : null
       }),
       signature
+    })
+    this.events.emit('verification.stored', {
+      userId, attrType, attrId, verificationId: verification.id
     })
     return verification.id
   }
