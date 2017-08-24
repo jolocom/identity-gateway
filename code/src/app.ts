@@ -139,6 +139,14 @@ const app = express()
         res.send('OK')
       }
     },
+    '/:userName/access': {
+      get: async (req, res) => {
+        let rules = await accessRights.list({
+          userID: req.user.id
+        })
+        res.json(rules)
+      }
+    },
     // '/:userName/access/revoke': {
     //   post: async (req, res) => {
 
