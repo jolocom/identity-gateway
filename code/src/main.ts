@@ -17,7 +17,7 @@ import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-crea
 import { AttributeVerifier } from './attribute-verifier'
 import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store'
 import { MemoryAttributeStore, SequelizeAttributeStore } from './attribute-store'
-import { MemoryAccessRights } from './access-rights'
+import { MemoryAccessRights, SequelizeAccessRights } from './access-rights'
 import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store'
 import { WalletManager, Wallet } from 'smartwallet-contracts'
 import { defineSequelizeModels } from './sequelize/models'
@@ -37,7 +37,7 @@ export async function main() : Promise<any> {
       logging: process.env.LOG_SQL === 'true'
     })
     await sequelize.authenticate()
-    
+
     const sequelizeModels = defineSequelizeModels(sequelize)
     if (DEVELOPMENT_MODE || process.env.SYNC === 'true') {
       await sequelize.sync()
@@ -62,31 +62,34 @@ export async function main() : Promise<any> {
     const attributeStore = new SequelizeAttributeStore({
       attributeModel: sequelizeModels.Attribute
     })
+    const accessRights = new SequelizeAccessRights({
+      ruleModel: sequelizeModels.Rule
+    })
     const publicKeyRetriever = async (identity) => {
       return JSON.parse((await request(identity))).publicKey
     }
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
-      
+
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
         form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      
+
       return (await req(`${identity}/identity/${attrType}/${attrId}`))
     }
     const verificationsRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})
-      
+
       await req({
         method: 'POST',
         uri: new URL(identity).origin + '/login',
         form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      
+
       return _.map(JSON.parse(await req(`${identity}/identity/${attrType}/${attrId}/verifications`)),
         (verification, id) => {
           return {...verification, id}
@@ -152,9 +155,9 @@ export async function main() : Promise<any> {
     })
 
     const app = createApp({
+      accessRights,
       sessionSecret: config.sessionSecret,
       expressSessionStore,
-      accessRights: new MemoryAccessRights(),
       identityUrlBuilder,
       identityStore: identityStore,
       attributeStore,
@@ -208,6 +211,7 @@ export async function main() : Promise<any> {
 }
 
 async function devPostInit() {
+
   try {
     const logStep = (msg) => {
       console.log('= DEV POST INIT:', msg, '=')
