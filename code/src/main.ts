@@ -381,8 +381,8 @@ async function devPostInit() {
       await session_1({
         method: 'PUT',
         uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
-        body: '[["value","vincent@shishkabab.net"]]',
-        headers: {'Content-Type': 'application/json'}
+        body: {value: 'vincent@shishkabab.net'},
+        json: true
       })
 
       logStep('Retrieving e-mail attribute')
@@ -446,11 +446,11 @@ async function devPostInit() {
           seedPhrase: secondUser.seedPhrase,
           attributeType: 'email',
           attributeId: 'primary',
-          attributeValue: '[["value","vincent@shishkabab.net"]]'
+          attributeValue: JSON.stringify({value: 'vincent@shishkabab.net'})
         }
       })
 
-      logStep('revoking write access to e-mail attribute verifications')
+      logStep('Revoking write access to e-mail attribute verifications')
 
       await session_1({
         method: 'POST',
@@ -463,7 +463,7 @@ async function devPostInit() {
         }
       })
 
-      logStep('listing access rights')
+      logStep('Listing access rights')
 
       console.log('access rights: ', await session_1({
         method: 'GET',
@@ -487,7 +487,7 @@ async function devPostInit() {
           seedPhrase: secondUser.seedPhrase,
           attributeType: 'email',
           attributeId: 'primary',
-          attributeValue: '[["value","vincent@shishkabab.net"]]'
+          attributeValue: JSON.stringify({value: 'vincent@shishkabab.net'})
         }
       }))
     }

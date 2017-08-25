@@ -4,15 +4,15 @@ import { AttributeStore, MemoryAttributeStore } from './attribute-store'
 
 function testAttributeStore({attributeStore} : {attributeStore : AttributeStore}) {
   it('should be able to store and delete string attibutes', async () => {
-    let email = await attributeStore.retrieveStringAttribute({userId: 'john', type: 'email', id: 'primary'})
+    let email = await attributeStore.retrieveAttribute({userId: 'john', type: 'email', id: 'primary'})
     expect(email).to.equal(undefined)
 
     await attributeStore.storeStringAttribute({userId: 'john', type: 'email', id: 'primary', value: 'test@test.com'})
-    email = await attributeStore.retrieveStringAttribute({userId: 'john', type: 'email', id: 'primary'})
-    expect(email).to.equal('test@test.com')
+    email = await attributeStore.retrieveAttribute({userId: 'john', type: 'email', id: 'primary'})
+    expect(email).to.equal({value: 'test@test.com', dataType: 'string'})
     
-    await attributeStore.deleteStringAttribute({userId: 'john', type: 'email', id: 'primary'})
-    email = await attributeStore.retrieveStringAttribute({userId: 'john', type: 'email', id: 'primary'})
+    await attributeStore.deleteAttribute({userId: 'john', type: 'email', id: 'primary'})
+    email = await attributeStore.retrieveAttribute({userId: 'john', type: 'email', id: 'primary'})
     expect(email).to.equal(undefined)
   })
 }

@@ -1,4 +1,5 @@
 import * as openpgp from 'openpgp'
+import * as stringify from 'json-stable-stringify'
 import { GatewayIdentityStore } from './identity-store';
 import { DataSigner } from './data-signer'
 import { AttributeRetriever } from './attribute-verifier'
@@ -51,6 +52,13 @@ export class AttributeChecker {
 
       return {publicKey, verification, verifierIdentityURL: verifierIdentity}
     }))
+
+    let serialized
+    try {
+      serialized = stringify(JSON.parse(attrValue))
+    } catch(e) {
+      serialized = attrValue
+    }
     
     return await Promise.all(publicKeysAndVerifications.map(async ({
       publicKey, verification, verifierIdentityURL
@@ -59,7 +67,7 @@ export class AttributeChecker {
         verificationId: verification.id,
         verifier: verifierIdentityURL,
         valid: (await openpgp.verify({
-          message: new openpgp.cleartext.CleartextMessage(attrValue),
+          message: new openpgp.cleartext.CleartextMessage(serialized),
           signature: openpgp.signature.readArmored(verification.signature),
           publicKeys: openpgp.key.readArmored(publicKey).keys
         })).signatures[0].valid

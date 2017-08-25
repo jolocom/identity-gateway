@@ -3,9 +3,11 @@ import * as _ from 'lodash'
 export interface AttributeStore {
   storeStringAttribute({userId, type, id, value} :
                        {userId : string, type : string, id : string, value : string})
-  retrieveStringAttribute({userId, type, id} : {userId : string, type : string, id : string})
-    : Promise<{value : string}>
-  deleteStringAttribute({userId, type, id} : {userId : string, type : string, id : string})
+  storeJsonAttribute({userId, type, id, value} :
+                     {userId : string, type : string, id : string, value : string})
+  retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string})
+    : Promise<{value : any, dataType : string}>
+  deleteAttribute({userId, type, id} : {userId : string, type : string, id : string})
   listAttributeTypes({userId}) : Promise<string[]>
   listAttributes({userId, type}) : Promise<string[]>
 }
@@ -32,13 +34,19 @@ export class MemoryAttributeStore implements AttributeStore {
     userAttributes[attrKey] = value
   }
 
-  async retrieveStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
-    const userAttributes = this.attributes[userId] || {}
-    const attrKey = `${type}_${id}`
-    return {value: userAttributes[attrKey]}
+  async storeJsonAttribute({userId, type, id, value} :
+                             {userId : string, type : string, id : string, value : any}) {
+      this.storeStringAttribute({userId, type, id, value})
   }
 
-  async deleteStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
+  async retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
+    const userAttributes = this.attributes[userId] || {}
+    const attrKey = `${type}_${id}`
+    const value = userAttributes[attrKey]
+    return {value, dataType: typeof value === 'string' ? 'string' : 'json'}
+  }
+
+  async deleteAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
     const userAttributes = this.attributes[userId] || {}
     const attrKey = `${type}_${id}`
     delete userAttributes[attrKey]
@@ -75,21 +83,35 @@ export class SequelizeAttributeStore implements AttributeStore {
                              {userId : string, type : string, id : string, value : string})
   {
     const [obj, created] = await this._attributeModel.findOrCreate({where: {
-      identityId: userId, type, key: id
+      identityId: userId, type, key: id, dataType: 'string'
     }, defaults: {value}})
     if (!created) {
       await obj.update({value})
     }
   }
 
-  async retrieveStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
+  async storeJsonAttribute({userId, type, id, value} :
+                             {userId : string, type : string, id : string, value : string})
+  {
+    const [obj, created] = await this._attributeModel.findOrCreate({where: {
+      identityId: userId, type, key: id, dataType: 'json'
+    }, defaults: {value: JSON.stringify(value)}})
+    if (!created) {
+      await obj.update({value: JSON.stringify(value)})
+    }
+  }
+
+  async retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
     const attribute = await this._attributeModel.findOne({where: {
       identityId: userId, type, key: id,
     }})
-    return {value: attribute.value}
+    return {
+      value: attribute.dataType === 'string' ? attribute.value : JSON.parse(attribute.value),
+      dataType: attribute.dataType
+    }
   }
 
-  async deleteStringAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
+  async deleteAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
     await this._attributeModel.destroy({where: {
       identityId: userId,
       type,
