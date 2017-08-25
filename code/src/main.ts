@@ -171,7 +171,7 @@ export async function main() : Promise<any> {
         seedPhrase: 'mandate print cereal style toilet hole cave mom heavy fork network indoor'
       })
       console.log(
-        'Deployed test contracts! LookupContract:', 
+        'Deployed test contracts! LookupContract:',
         walletManager._config.lookupContractAddress
       )
     }
@@ -284,12 +284,12 @@ async function devPostInit() {
         : 'user2 seed phrase'
       )
     }
-    
+
     const cookieJar_1 = request.jar()
     const session_1 = request.defaults({jar: cookieJar_1})
     const cookieJar_2 = request.jar()
     const session_2 = request.defaults({jar: cookieJar_2})
-    
+
     logStep('Creating first user')
 
     await session_1({
@@ -396,6 +396,13 @@ async function devPostInit() {
         }
       })
 
+      logStep('listing access rights')
+
+      console.log('access rights: ', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/access`,
+      }))
+
       logStep('Verifying e-mail attribute')
 
       await session_2({
@@ -409,6 +416,26 @@ async function devPostInit() {
           attributeValue: '[["value","vincent@shishkabab.net"]]'
         }
       })
+
+      logStep('revoking write access to e-mail attribute verifications')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/access/revoke`,
+        form: {
+          identity: `${gatewayURL}/${secondUser.userName}`,
+          pattern: '/identity/email/primary/verifications',
+          read: true,
+          write: false
+        }
+      })
+
+      logStep('listing access rights')
+
+      console.log('access rights: ', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/access`,
+      }))
 
       logStep('Retrieving e-mail attribute verifications')
 
