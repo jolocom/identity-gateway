@@ -14,7 +14,7 @@ export function defineSequelizeModels(sequelize) {
     },
     LinkedIdentity: {
       type: Sequelize.STRING,
-      identitier: Sequelize.STRING,
+      identifier: Sequelize.STRING,
     },
     Attribute: {
       type: Sequelize.STRING,
@@ -24,6 +24,7 @@ export function defineSequelizeModels(sequelize) {
     Verification: {
       identity: Sequelize.STRING,
       signature: Sequelize.TEXT,
+      linkedIdentities: Sequelize.TEXT,
     },
     Rule: {
       requester: Sequelize.STRING,

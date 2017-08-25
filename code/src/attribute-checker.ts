@@ -2,24 +2,26 @@ import * as openpgp from 'openpgp'
 import { GatewayIdentityStore } from './identity-store';
 import { DataSigner } from './data-signer'
 import { AttributeRetriever } from './attribute-verifier'
-import { PublicKeyRetriever } from './verification-store'
+import { PublicKeyRetrievers } from './verification-store'
 
-export type VerificationsRetriever = ({sourceIdentitySignature, identity, attrType, attrId}) => Promise<Array<{id, verifierIdentity, signature}>>
+export type VerificationsRetriever = ({
+  sourceIdentitySignature, identity, attrType, attrId
+}) => Promise<Array<{id, verifierIdentity, linkedIdentities, signature}>>
 
 export class AttributeChecker {
   private _attributeRetriever : AttributeRetriever
-  private _publicKeyRetriever : PublicKeyRetriever
+  private _publicKeyRetrievers : PublicKeyRetrievers
   private _dataSigner : DataSigner
   private _verificationsRetriever : VerificationsRetriever
 
-  constructor({attributeRetriever, verificationsRetriever, publicKeyRetriever, dataSigner} :
+  constructor({attributeRetriever, verificationsRetriever, publicKeyRetrievers, dataSigner} :
               {attributeRetriever : AttributeRetriever,
                dataSigner : DataSigner,
                verificationsRetriever : VerificationsRetriever,
-               publicKeyRetriever : PublicKeyRetriever})
+               publicKeyRetrievers : PublicKeyRetrievers})
   {
     this._attributeRetriever = attributeRetriever
-    this._publicKeyRetriever = publicKeyRetriever
+    this._publicKeyRetrievers = publicKeyRetrievers
     this._dataSigner = dataSigner
     this._verificationsRetriever = verificationsRetriever
   }
@@ -34,11 +36,20 @@ export class AttributeChecker {
     const verifications = await this._verificationsRetriever({
       sourceIdentitySignature, identity, attrType, attrId
     })
-    const publicKeysAndVerifications = await Promise.all(verifications.map(verification => {
+
+    const publicKeysAndVerifications = await Promise.all(verifications.map(async verification => {
       const verifierIdentity = verification.verifierIdentity
-      return this._publicKeyRetriever(verifierIdentity).then(publicKey => {
-        return {publicKey, verification, verifierIdentityURL: verifierIdentity}
-      })
+
+      let publicKey
+      if (verification.linkedIdentities.ethereum) {
+        publicKey = await this._publicKeyRetrievers.ethereum(
+          verifierIdentity, verification.linkedIdentities.ethereum
+        )
+      } else {
+        publicKey = await this._publicKeyRetrievers.url(verifierIdentity)
+      }
+
+      return {publicKey, verification, verifierIdentityURL: verifierIdentity}
     }))
     
     return await Promise.all(publicKeysAndVerifications.map(async ({

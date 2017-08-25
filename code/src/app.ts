@@ -13,19 +13,20 @@ import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
 import { AttributeStore } from './attribute-store'
-import { VerificationStore } from './verification-store'
+import { VerificationStore, PublicKeyRetrievers } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
 import { AttributeChecker } from './attribute-checker'
 // import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
+import { EthereumInteraction } from './ethereum-interaction'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
                            attributeStore, verificationStore,
                            attributeVerifier, attributeChecker,
-                           publicKeyRetriever,
+                           publicKeyRetrievers,
                            expressSessionStore, sessionSecret,
-                           getEthereumAccountBySeedPhrase} :
+                           ethereumInteraction, getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
                            identityUrlBuilder : IdentityUrlBuilder,
@@ -35,10 +36,11 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
                            attributeChecker : AttributeChecker,
-                           publicKeyRetriever : (string) => Promise<string>,
+                           publicKeyRetrievers : PublicKeyRetrievers,
                            expressSessionStore,
                            sessionSecret : string,
-                           getEthereumAccountBySeedPhrase : (string) => Promise<{
+                           ethereumInteraction: EthereumInteraction,
+                           getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
                              identityAddress : string,
                            }>,
@@ -79,7 +81,7 @@ const app = express()
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
     next()
   })
-  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetriever}))
+  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
   setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
   // app.use(async (req, res, next) => {
   //   try {
@@ -269,13 +271,32 @@ const app = express()
           userId: req.user.id,
           seedPhrase: req.body.seedPhrase,
           publicKey: (await identityStore.getKeyPairBySeedPhrase(req.body.seedPhrase)).publicKey,
-          identityURL: req.user.identityURL
+          identityURL: req.user.identity
         }))
       }
     },
     '/:userName/ethereum': {
       get: async (req, res) => {
-        res.json(await getEthereumAccountBySeedPhrase(req.body.seedPhrase))
+        res.json(await getEthereumAccountByUserId(req.user.id))
+      }
+    },
+    '/:userName/ethereum/get-balance': {
+      post: async (req, res) => {
+        res.json({
+          ether: await ethereumInteraction.getEtherBalance({walletAddress: req.body.walletAddress})
+        })
+      }
+    },
+    '/:userName/ethereum/send-ether': {
+      post: async (req, res) => {
+        await ethereumInteraction.sendEther({
+          seedPhrase: req.body.seedPhrase,
+          receiver: req.body.receiver,
+          amountEther: req.body.amountEther,
+          data: req.body.data,
+          gasInWei: req.body.gasInWei
+        })
+        res.send('OK')
       }
     }
   }

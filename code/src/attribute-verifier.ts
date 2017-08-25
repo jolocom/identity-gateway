@@ -46,7 +46,7 @@ export class AttributeVerifier {
     const hasEthereum = !!(await this._identityStore.getLinkedIdentity({
       userId: sourceUserId, type: 'ethereum:identity'
     }))
-
+    
     const retrievedAttribute = await this._attributeRetriever({
       sourceIdentitySignature, identity, attrType, attrId
     })

@@ -115,6 +115,9 @@ export class SequelizeAccessRights implements AccessRights {
       identityId: userID,
       requester: identity
     }})
+
+    console.log(identityRules)
+
     identityRules = _(identityRules)
       .map((rule, idx) => ({...rule, idx}))
       .filter(rule => !rule.token || rule.token === oneTimeToken)
