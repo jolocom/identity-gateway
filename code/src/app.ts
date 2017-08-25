@@ -20,6 +20,7 @@ import { AttributeChecker } from './attribute-checker'
 // import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 import { EthereumInteraction } from './ethereum-interaction'
+import { stringToBoolean } from './utils'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
@@ -76,7 +77,7 @@ const app = express()
       })
       req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
-  
+
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
   app.use(bodyParser.text())
@@ -151,6 +152,20 @@ const app = express()
             expiryDate: req.body.expiryDate && moment(req.body.expiryDate)
           })
         }))
+        res.send('OK')
+      }
+    },
+    '/:userName/access/revoke': {
+      post: async (req, res) => {
+        let read = stringToBoolean(req.body.read)
+        let write = stringToBoolean(req.body.write)
+        await accessRights.revoke({
+          userID: req.user.id,
+          identity: req.body.identity,
+          pattern: req.body.pattern,
+          read,
+          write
+        })
         res.send('OK')
       }
     },
@@ -355,7 +370,7 @@ export function createSocketIO({server, sessionSecret, sessionStore, verificatio
   }));
 
   const clients = {}
-  io.on('connection', function(client) {  
+  io.on('connection', function(client) {
     console.log('Client connected...', client.request.user)
 
     // client.on('join', function(data) {

@@ -171,7 +171,7 @@ export async function main() : Promise<any> {
         seedPhrase: 'mandate print cereal style toilet hole cave mom heavy fork network indoor'
       })
       console.log(
-        'Deployed test contracts! LookupContract:', 
+        'Deployed test contracts! LookupContract:',
         walletManager._config.lookupContractAddress
       )
     }
@@ -418,6 +418,13 @@ async function devPostInit() {
         }
       })
 
+      logStep('Listing access rights')
+
+      console.log('Access rights: ', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/access`,
+      }))
+
       logStep('Testing proxy functionality')
 
       console.log('Got e-mail via proxy', await session_2({
@@ -442,6 +449,26 @@ async function devPostInit() {
           attributeValue: '[["value","vincent@shishkabab.net"]]'
         }
       })
+
+      logStep('revoking write access to e-mail attribute verifications')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/access/revoke`,
+        form: {
+          identity: `${gatewayURL}/${secondUser.userName}`,
+          pattern: '/identity/email/primary/verifications',
+          read: true,
+          write: false
+        }
+      })
+
+      logStep('listing access rights')
+
+      console.log('access rights: ', await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/${firstUser.userName}/access`,
+      }))
 
       logStep('Retrieving e-mail attribute verifications')
 
