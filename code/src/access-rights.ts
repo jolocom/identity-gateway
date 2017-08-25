@@ -9,7 +9,7 @@ export interface AccessRights {
         })
   revoke({userID, identity, oneTimeToken, pattern, read, write} :
          {userID : string, identity : string, pattern : string,
-          read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
+          read: boolean, write: boolean, expiryDate? : moment.Moment, oneTimeToken? : string
          })
   check({userID, identity, path} : {userID : string, identity : string, path : string})
        : Promise<{read : boolean, write : boolean}>
@@ -68,7 +68,7 @@ export class MemoryAccessRights implements AccessRights {
      this.rules[userID] = this.rules[userID] || []
      return this.rules[userID].map((rule) => {
        return {
-         identity: rule.requester,
+         identity: rule.identity,
          read: rule.read,
          write: rule.write,
          pattern: rule.pattern
@@ -81,7 +81,22 @@ export class MemoryAccessRights implements AccessRights {
            read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
           })
           {
-            //TODO memory implementation
+            identity = normalizedIdentity(identity)
+            if(read==false && write==false){
+              this.rules[userID] = this.rules[userID].filter(
+                rule => !(rule.identity === identity && rule.pattern === pattern))
+            }else{
+              this.rules[userID] = this.rules[userID].map(
+                (rule) => {
+                  let temp = rule
+                  if (rule.identity === identity && rule.pattern === pattern){
+                    temp.read = read
+                    temp.write = write
+                  }
+                  return temp
+                }
+              )
+            }
           }
 
   _getNow() {
