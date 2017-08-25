@@ -201,21 +201,32 @@ const app = express()
     '/:userName/identity/:attribute/:id': {
       get: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        res.json(JSON.parse((await attributeStore.retrieveStringAttribute({
+        const attribute = (await attributeStore.retrieveAttribute({
           userId, type: req.params.attribute, id: req.params.id
-        })).value))
+        }))
+        if (attribute.dataType === 'string') {
+          res.send(attribute.value)
+        } else {
+          res.json(attribute.value)
+        }
       },
       put: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        await attributeStore.storeStringAttribute({
+        const isString = typeof req.body === 'string'
+        const params = {
           userId, type: req.params.attribute, id: req.params.id,
-          value: typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
-        })
+          value: req.body
+        }
+        if (isString) {
+          await attributeStore.storeStringAttribute(params)
+        } else {
+          await attributeStore.storeJsonAttribute(params)
+        }
         res.send('OK')
       },
       delete: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        await attributeStore.deleteStringAttribute({
+        await attributeStore.deleteAttribute({
           userId, type: req.params.attribute, id: req.params.id
         })
         res.send('OK')

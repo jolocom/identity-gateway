@@ -1,5 +1,6 @@
 import * as events from 'events'
 import * as openpgp from 'openpgp'
+import * as stringify from 'json-stable-stringify'
 import { AttributeStore } from './attribute-store';
 
 export type PublicKeyRetriever = (string) => Promise<string>
@@ -38,11 +39,14 @@ export abstract class VerificationStore {
       armoredPublicKey = this._publicKeyRetrievers.url(verifierIdentity)
     }
 
-    const attrValue = (await this._attributeStore.retrieveStringAttribute({
+    const attribute = (await this._attributeStore.retrieveAttribute({
       userId, type: attrType, id: attrId
-    })).value
+    }))
+
+    const serialized = attribute.dataType === 'json' ? stringify(attribute.value) : attribute.value
+
     const result = await openpgp.verify({
-      message: new openpgp.cleartext.CleartextMessage(attrValue),
+      message: new openpgp.cleartext.CleartextMessage(serialized),
       signature: openpgp.signature.readArmored(signature),
       publicKeys: openpgp.key.readArmored(armoredPublicKey).keys
     })

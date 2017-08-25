@@ -18,6 +18,7 @@ export function defineSequelizeModels(sequelize) {
     },
     Attribute: {
       type: Sequelize.STRING,
+      dataType: Sequelize.STRING,
       key: Sequelize.STRING,
       value: Sequelize.TEXT,
     },
