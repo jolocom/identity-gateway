@@ -210,6 +210,7 @@ export async function main() : Promise<any> {
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
+      dataSigner: new DataSigner({identityStore}),
       ethereumIdentityCreator,
       ethereumInteraction,
       attributeVerifier: new AttributeVerifier({
@@ -272,6 +273,7 @@ async function devPostInit() {
         : 'user1 seed phrase'
       )
     }
+
     const createSecondUser = testAttributeVerification ||
       process.env.SECOND_USER_SEED_PHRASE ||
       process.env.CREATE_SECOND_USER === 'true'
@@ -284,11 +286,21 @@ async function devPostInit() {
         : 'user2 seed phrase'
       )
     }
+
+    const createThirdUser = (process.env.SECOND_THIRD_SEED_PHRASE ||
+      process.env.CREATE_THIRD_USER === 'true')
+    const thirdUser = {
+      create: createThirdUser,
+      userName: process.env.THIRD_USER_NAME || 'jack',
+      seedPhrase: process.env.THIRD_USER_SEED_PHRASE || 'user3 seed phrase'
+    }
     
     const cookieJar_1 = request.jar()
     const session_1 = request.defaults({jar: cookieJar_1})
     const cookieJar_2 = request.jar()
     const session_2 = request.defaults({jar: cookieJar_2})
+    const cookieJar_3 = request.jar()
+    const session_3 = request.defaults({jar: cookieJar_3})
     
     logStep('Creating first user')
 
@@ -321,6 +333,16 @@ async function devPostInit() {
         method: 'POST',
         uri: gatewayURL + '/login',
         form: {seedPhrase: secondUser.seedPhrase}
+      })
+    }
+
+    if (thirdUser.create) {
+      logStep('Creating third user')
+
+      await session_2({
+        method: 'PUT',
+        uri: `${gatewayURL}/${thirdUser.userName}`,
+        form: {seedPhrase: thirdUser.seedPhrase}
       })
     }
 
@@ -395,6 +417,17 @@ async function devPostInit() {
           write: 'true'
         }
       })
+
+      logStep('Testing proxy functionality')
+
+      console.log('Got e-mail via proxy', await session_2({
+        method: 'GET',
+        uri: `${gatewayURL}/proxy`,
+        qs: {
+          url: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+          seedPhrase: secondUser.seedPhrase
+        }
+      }))
 
       logStep('Verifying e-mail attribute')
 

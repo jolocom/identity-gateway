@@ -1,3 +1,4 @@
+import { DataSigner } from './data-signer';
 import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
@@ -26,6 +27,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier, attributeChecker,
                            publicKeyRetrievers,
                            expressSessionStore, sessionSecret,
+                           dataSigner,
                            ethereumInteraction, getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
@@ -39,6 +41,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetrievers : PublicKeyRetrievers,
                            expressSessionStore,
                            sessionSecret : string,
+                           dataSigner : DataSigner,
                            ethereumInteraction: EthereumInteraction,
                            getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
@@ -55,10 +58,13 @@ const app = express()
   }))
   app.use(passport.initialize())
   app.use(passport.session())
-  app.use('/proxy/', accessRightsMiddleware({ accessRights, identityStore }),
+  app.use('/proxy', accessRightsMiddleware({ accessRights, identityStore }),
     async (req, res) => {
       const destination = req.query.url
       const sourceIdentity = req.user.identity
+      const sourceIdentitySignature = await dataSigner.signData({
+        data: sourceIdentity, seedPhrase: req.query.seedPhrase
+      })
 
       const cookieJar = request.jar()
       const reqst = request.defaults({jar: cookieJar})
@@ -66,9 +72,9 @@ const app = express()
       await reqst({
         method: 'POST',
         uri: new URL(destination).origin + '/login',
-        body: JSON.stringify({"identity": sourceIdentity})
+        form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      req.pipe(request({ qs:req.query, uri: req.query.url })).pipe(res);
+      req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
   
   app.use(bodyParser.urlencoded({extended: true}))
@@ -289,13 +295,24 @@ const app = express()
     }
   }
 
-  app.post('/login',
-    passport.authenticate('custom', { failureRedirect: '/login' }),
-    function(req, res) {
-      res.json({userName: req.user.userName})
-    }
-  )
-
+  app.post('/login', function(req, res, next) {
+    passport.authenticate('custom', function(err, user, info) {
+      if (err) {
+        return next(err)
+      }
+      if (!user) {
+        return res.json({success: false})
+      }
+      
+      req.logIn(user, function(err) {
+        if (err) {
+          return next(err)
+        }
+        return res.json({success: true, userName: user.userName})
+      });
+    })(req, res, next);
+  });
+  
   _.each(protectedRoutes, (methods, path) => {
     _.each(methods, (func, method) => {
       app[method](path, accessRightsMiddleware({

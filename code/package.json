@@ -78,6 +78,7 @@
     "chai-http": "^3.0.0",
     "chai-string": "^1.2.0",
     "concurrently": "^2.0.0",
+    "ethereumjs-testrpc": "^4.1.1",
     "mocha": "^2.4.5",
     "sinon": "^1.17.3",
     "typescript": "^2.2.2"
