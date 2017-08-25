@@ -32,7 +32,18 @@ const DEVELOPMENT_MODE = process.env.NODE_ENV === 'dev';
 
 
 export async function main() : Promise<any> {
-  const config = require('../config.json')
+  let config
+  try {
+    config = require('../config.json')
+  } catch(e) {
+    if (DEVELOPMENT_MODE) {
+      config = {
+        sessionSecret: 'dev session secret'
+      }
+    } else {
+      throw e
+    }
+  }
 
   try {
     const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://', {
