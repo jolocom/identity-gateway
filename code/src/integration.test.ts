@@ -2,25 +2,40 @@ import * as moment from 'moment'
 import * as request from 'request-promise-native'
 import { expect } from 'chai'
 import { main } from './main'
+import * as tests from './integration.tests'
 
 
-describe('Integration test', async () => {
-  console.log(1)
-  // const server = await main()
-  console.log(2)
+describe.only('Integration test', function() {
+  let server
 
-  // after(async () => {
-  //   console.log(3)
-  //   await new Promise((resolve) => {
-  //     server.close((err) => {
-  //       resolve()
-  //     })
-  //   })
-  //   console.log(4)
-  // })
+  this.timeout(5000)
+
+  before(async () => {
+    server = await main({
+      sessionSecret: 'test session secret',
+      syncDB: true,
+      baseUrl: 'http://localhost:5678',
+      privKeySize: 512,
+      ethereum: {
+        testSetup: true
+      }
+    })
+  })
+
+  after(async () => {
+    await new Promise((resolve) => {
+      server.close((err) => {
+        resolve()
+      })
+    })
+  })
 
   it.only('should be able to do everything', async () => {
-    console.log(5)
+    await tests.devPostInit({
+      testEthereumIdentity: true,
+      testAttributeVerification: true
+    })
+
     // let res
     // const cookieJar = request.jar()
     // const req = request.defaults({jar: cookieJar})
