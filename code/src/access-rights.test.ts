@@ -69,7 +69,7 @@ describe('Sequelize access rights', async () => {
   accessRights._getNow = () => dummyNow
 
   beforeEach(async () => {
-    await sequelizeModels.Rule.Delete()
+    await sequelizeModels.Rule.destroy({truncate: true})
   })
 
   testAccessRights({accessRights})
