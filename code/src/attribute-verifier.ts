@@ -1,5 +1,7 @@
+import * as _ from 'lodash'
 import { GatewayIdentityStore } from './identity-store';
 import { DataSigner } from './data-signer'
+import * as stringify from 'json-stable-stringify'
 
 export type AttributeRetriever = ({
   sourceIdentitySignature,
@@ -50,9 +52,18 @@ export class AttributeVerifier {
     const retrievedAttribute = await this._attributeRetriever({
       sourceIdentitySignature, identity, attrType, attrId
     })
-    if (retrievedAttribute !== attrValue) {
-      return false
+    const attrIsString = typeof retrievedAttribute === 'string'
+    if (attrIsString) {
+      if (retrievedAttribute !== attrValue) {
+        return false
+      }
+    } else {
+      if (!_.isEqual(retrievedAttribute, attrValue)) {
+        return false
+      }
     }
+
+    const serialized = !attrIsString ? stringify(retrievedAttribute) : retrievedAttribute
     
     const signature = await this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
     await this._verificationSender({

@@ -1,3 +1,4 @@
+import { DataSigner } from './data-signer';
 import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
@@ -27,6 +28,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier, attributeChecker,
                            publicKeyRetrievers,
                            expressSessionStore, sessionSecret,
+                           dataSigner,
                            ethereumInteraction, getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
@@ -40,6 +42,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            publicKeyRetrievers : PublicKeyRetrievers,
                            expressSessionStore,
                            sessionSecret : string,
+                           dataSigner : DataSigner,
                            ethereumInteraction: EthereumInteraction,
                            getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
@@ -56,10 +59,13 @@ const app = express()
   }))
   app.use(passport.initialize())
   app.use(passport.session())
-  app.use('/proxy/', accessRightsMiddleware({ accessRights, identityStore }),
+  app.use('/proxy', accessRightsMiddleware({ accessRights, identityStore }),
     async (req, res) => {
       const destination = req.query.url
       const sourceIdentity = req.user.identity
+      const sourceIdentitySignature = await dataSigner.signData({
+        data: sourceIdentity, seedPhrase: req.query.seedPhrase
+      })
 
       const cookieJar = request.jar()
       const reqst = request.defaults({jar: cookieJar})
@@ -67,9 +73,9 @@ const app = express()
       await reqst({
         method: 'POST',
         uri: new URL(destination).origin + '/login',
-        body: JSON.stringify({"identity": sourceIdentity})
+        form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
-      req.pipe(request({ qs:req.query, uri: req.query.url })).pipe(res);
+      req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
 
   app.use(bodyParser.urlencoded({extended: true}))
@@ -195,21 +201,32 @@ const app = express()
     '/:userName/identity/:attribute/:id': {
       get: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        res.json(JSON.parse((await attributeStore.retrieveStringAttribute({
+        const attribute = (await attributeStore.retrieveAttribute({
           userId, type: req.params.attribute, id: req.params.id
-        })).value))
+        }))
+        if (attribute.dataType === 'string') {
+          res.send(attribute.value)
+        } else {
+          res.json(attribute.value)
+        }
       },
       put: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        await attributeStore.storeStringAttribute({
+        const isString = typeof req.body === 'string'
+        const params = {
           userId, type: req.params.attribute, id: req.params.id,
-          value: typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
-        })
+          value: req.body
+        }
+        if (isString) {
+          await attributeStore.storeStringAttribute(params)
+        } else {
+          await attributeStore.storeJsonAttribute(params)
+        }
         res.send('OK')
       },
       delete: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        await attributeStore.deleteStringAttribute({
+        await attributeStore.deleteAttribute({
           userId, type: req.params.attribute, id: req.params.id
         })
         res.send('OK')
@@ -304,13 +321,24 @@ const app = express()
     }
   }
 
-  app.post('/login',
-    passport.authenticate('custom', { failureRedirect: '/login' }),
-    function(req, res) {
-      res.json({userName: req.user.userName})
-    }
-  )
-
+  app.post('/login', function(req, res, next) {
+    passport.authenticate('custom', function(err, user, info) {
+      if (err) {
+        return next(err)
+      }
+      if (!user) {
+        return res.json({success: false})
+      }
+      
+      req.logIn(user, function(err) {
+        if (err) {
+          return next(err)
+        }
+        return res.json({success: true, userName: user.userName})
+      });
+    })(req, res, next);
+  });
+  
   _.each(protectedRoutes, (methods, path) => {
     _.each(methods, (func, method) => {
       app[method](path, accessRightsMiddleware({
