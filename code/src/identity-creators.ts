@@ -31,7 +31,7 @@ export class GatewayIdentityCreator {
 
     await this._identityStore.linkIdentity({userId, identities: {
         type: 'ethereum:wallet',
-        identifier: await this._getMainAddressBySeedPhrase({seedPhrase})
+        identifier: await this._getMainAddressBySeedPhrase(seedPhrase)
       }
     })
   }
