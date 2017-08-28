@@ -214,6 +214,7 @@ export async function main(config = null) : Promise<any> {
       verificationStore,
       identityCreator: new GatewayIdentityCreator({
         identityStore,
+        getMainAddressBySeedPhrase: (seedPhrase) => walletManager.getMainAddressBySeedPhrase(seedPhrase),
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
