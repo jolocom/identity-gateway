@@ -9,7 +9,8 @@ export class GatewayIdentityCreator {
 
   constructor({privateKeyGenerator, identityStore, getMainAddressBySeedPhrase} :
               {privateKeyGenerator : GatewayPrivateKeyGenerator,
-              identityStore : GatewayIdentityStore, getMainAddressBySeedPhrase : (string) => Promise<string>})
+              identityStore : GatewayIdentityStore,
+              getMainAddressBySeedPhrase : (string) => Promise<string>})
   {
     this._privateKeyGenerator = privateKeyGenerator
     this._identityStore = identityStore
