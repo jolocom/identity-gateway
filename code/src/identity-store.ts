@@ -8,7 +8,7 @@ export interface LinkedIdentitiesMap {
 }
 
 export interface GatewayIdentityStore {
-  storeIdentity({userName, seedPhrase, keyPair})
+  storeIdentity({userName, seedPhrase, keyPair}) : Promise<{userId}>
   getUserBySeedPhrase(seedPhrase) : Promise<{id, userName}>
   getUserIdByUserName(userName) : Promise<string>
   getKeyPairBySeedPhrase(seedPhrase) : Promise<KeyPair>
@@ -16,7 +16,7 @@ export interface GatewayIdentityStore {
 
   linkIdentity({userId, identities} :
                {userId : string,
-                identities : Array<{type, identitfier}> | {type, identitfier}}) : Promise<any>
+                identities : Array<{type, identifier}> | {type, identifier}}) : Promise<any>
   getLinkedIdentity({userId, type} : {userId : string, type : string}) : Promise<string>
   getLinkedIdentities({userId} : {userId : string}) : Promise<LinkedIdentitiesMap>
 }
@@ -26,15 +26,16 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
 
   async storeIdentity({userName, seedPhrase, keyPair}) {
     this.identities[seedPhrase] = {userName, keyPair}
+    return {userId: userName}
   }
-  
+
   async getUserBySeedPhrase(seedPhrase) {
     return {
       id: this.identities[seedPhrase].userName,
       userName: this.identities[seedPhrase].userName,
     }
   }
-  
+
   async getUserIdByUserName(userName) {
     return (_.find(this.identities, {userName}) || {}).userName
   }
@@ -49,7 +50,7 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
 
   async linkIdentity({userId, identities} :
                        {userId : string,
-                        identities : Array<{type, identitfier}> | {type, identitfier}})
+                        identities : Array<{type, identifier}> | {type, identifier}})
   {
     throw new Error("Not implemented yet")
   }
@@ -81,7 +82,7 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
     seedPhraseHashObject.update(seedPhrase)
     const seedPhraseHash = seedPhraseHashObject.digest('hex')
 
-    await this._identityModel.create({
+    const record = await this._identityModel.create({
       userName,
       seedPhraseHash: seedPhraseHash,
       dataBackend: 'mysql',
@@ -89,8 +90,9 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
       privateKey: keyPair.privateKey,
       publicKey: keyPair.publicKey,
     })
+    return {userId: record.id}
   }
-  
+
   async getUserBySeedPhrase(seedPhrase) {
     const seedPhraseHashObject = crypto.createHash('sha512')
     seedPhraseHashObject.update(seedPhrase)
@@ -101,7 +103,7 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
       userName: identity.userName
     }
   }
-  
+
   async getUserIdByUserName(userName) {
     const identity = await this._identityModel.findOne({where: {userName}})
     return identity && identity.id
@@ -130,7 +132,7 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
 
   async linkIdentity({userId, identities} :
                        {userId : string,
-                        identities : Array<{type, identitfier}> | {type, identitfier}})
+                        identities : Array<{type, identifier}> | {type, identifier}})
   {
     if (!(identities instanceof Array)) {
       identities = [identities]
@@ -139,14 +141,14 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
     for(let identity of identities) {
       await createOrUpdate(this._linkedIdentityModel,
         {identityId: userId, type: identity.type},
-        {identifier: identity.identitfier}
+        {identifier: identity.identifier}
       )
     }
 
     // await Promise.all(identities.map(identity => {
     //   return createOrUpdate(this._linkedIdentityModel,
     //     {identityId: userId, type: identity.type},
-    //     {identifier: identity.identitfier}
+    //     {identifier: identity.identifier}
     //   )
     // }))
   }
