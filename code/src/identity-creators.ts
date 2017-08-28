@@ -4,13 +4,16 @@ import { GatewayPrivateKeyGenerator, SolidPrivateKeyGenerator } from './private-
 export class GatewayIdentityCreator {
   private _privateKeyGenerator : GatewayPrivateKeyGenerator
   private _identityStore : GatewayIdentityStore
+  private _getMainAddressBySeedPhrase
 
-  constructor({privateKeyGenerator, identityStore} :
+
+  constructor({privateKeyGenerator, identityStore, getMainAddressBySeedPhrase} :
               {privateKeyGenerator : GatewayPrivateKeyGenerator,
-               identityStore : GatewayIdentityStore})
+              identityStore : GatewayIdentityStore, getMainAddressBySeedPhrase : (string) => Promise<string>})
   {
     this._privateKeyGenerator = privateKeyGenerator
     this._identityStore = identityStore
+    this._getMainAddressBySeedPhrase = getMainAddressBySeedPhrase
   }
 
   async createIdentity({userName, seedPhrase} :
@@ -21,8 +24,15 @@ export class GatewayIdentityCreator {
       email: `${userName}@identity.jolocom.com`,
       passphrase: seedPhrase
     })
-    await this._identityStore.storeIdentity({
+
+    const {userId} = await this._identityStore.storeIdentity({
       userName, keyPair, seedPhrase
+    })
+
+    await this._identityStore.linkIdentity({userId, identities: {
+        type: 'ethereum:wallet',
+        identifier: await this._getMainAddressBySeedPhrase({seedPhrase})
+      }
     })
   }
 }
@@ -66,8 +76,8 @@ export class EthereumIdentityCreator {
     }
 
     await this._identityStore.linkIdentity({userId, identities: [
-      {type: 'ethereum:wallet', identitfier: walletAddress},
-      {type: 'ethereum:identity', identitfier: wallet.identityAddress},
+      {type: 'ethereum:wallet', identifier: walletAddress},
+      {type: 'ethereum:identity', identifier: wallet.identityAddress},
     ]})
     return {
       walletAddress: wallet.mainAddress,

@@ -207,6 +207,7 @@ export async function main() : Promise<any> {
       verificationStore,
       identityCreator: new GatewayIdentityCreator({
         identityStore,
+        getMainAddressBySeedPhrase: (seedPhrase) => walletManager.getMainAddressBySeedPhrase(seedPhrase),
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
       }),
@@ -294,14 +295,14 @@ async function devPostInit() {
       userName: process.env.THIRD_USER_NAME || 'jack',
       seedPhrase: process.env.THIRD_USER_SEED_PHRASE || 'user3 seed phrase'
     }
-    
+
     const cookieJar_1 = request.jar()
     const session_1 = request.defaults({jar: cookieJar_1})
     const cookieJar_2 = request.jar()
     const session_2 = request.defaults({jar: cookieJar_2})
     const cookieJar_3 = request.jar()
     const session_3 = request.defaults({jar: cookieJar_3})
-    
+
     logStep('Creating first user')
 
     await session_1({
