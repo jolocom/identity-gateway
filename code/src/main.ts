@@ -83,10 +83,10 @@ export async function main() : Promise<any> {
         return await walletManager.getPublicKeyByUri({uri: identity, identityAddress})
       }
     }
-    // const accessRights = new SequelizeAccessRights({
-    //   ruleModel: sequelizeModels.Rule
-    // })
-    const accessRights = new MemoryAccessRights()
+    const accessRights = new SequelizeAccessRights({
+      ruleModel: sequelizeModels.Rule
+    })
+    // const accessRights = new MemoryAccessRights()
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()
       const req = request.defaults({jar: cookieJar})

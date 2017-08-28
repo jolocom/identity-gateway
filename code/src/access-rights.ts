@@ -131,10 +131,7 @@ export class SequelizeAccessRights implements AccessRights {
       requester: identity
     }})
 
-    console.log(identityRules)
-
     identityRules = _(identityRules)
-      .map((rule, idx) => ({...rule, idx}))
       .filter(rule => !rule.token || rule.token === oneTimeToken)
       .filter(rule => !rule.expiryDate || rule.expiryDate.isAfter(this._getNow()))
       .filter(rule => minimatch(path, rule.pattern))
