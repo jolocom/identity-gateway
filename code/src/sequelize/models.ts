@@ -7,8 +7,6 @@ export function defineSequelizeModels(sequelize) {
     Identity: {
       userName: Sequelize.STRING,
       seedPhraseHash: Sequelize.TEXT,
-      dataBackend: Sequelize.STRING,
-      verificationBackend: Sequelize.STRING,
       privateKey: Sequelize.TEXT,
       publicKey: Sequelize.TEXT,
     },
