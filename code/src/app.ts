@@ -120,7 +120,8 @@ const app = express()
   app.put('/:userName', async (req, res) => {
     try {
       await identityCreator.createIdentity({
-        userName: req.params.userName, seedPhrase: req.body.seedPhrase
+        userName: req.params.userName, seedPhrase: req.body.seedPhrase,
+        dontStoreWalletAddress: req.body.dontStoreWalletAddress
       })
     } catch(e) {
       console.error(e)
@@ -191,10 +192,16 @@ const app = express()
       },
       put: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.params.userName)
-        await attributeStore.storeStringAttribute({
+        const isString = typeof req.body === 'string'
+        const params = {
           userId, type: req.params.attribute, id: uuid(),
-          value: typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
-        })
+          value: req.body
+        }
+        if (isString) {
+          await attributeStore.storeStringAttribute(params)
+        } else {
+          await attributeStore.storeJsonAttribute(params)
+        }
         res.send('OK')
       }
     },
@@ -382,11 +389,25 @@ export function createSocketIO({server, sessionSecret, sessionStore, verificatio
 
   const clients = {}
   io.on('connection', function(client) {
-    console.log('Client connected...', client.request.user)
+    // console.log('Client connected...', client.request.user)
+    clients[client.request.user.id] = client
 
-    // client.on('join', function(data) {
-    //     console.log(data)
-    // })
+    client.on('disconnect', function() {
+      delete clients[client.request.user.id]
+   });
+  })
+
+  verificationStore.events.on('verification.stored', ({
+      userId, attrType, attrId, verificationId
+  }) => {
+    const client = clients[userId]
+    if (!client) {
+      return
+    }
+
+    clients[userId].emit('verification.stored', {
+      attrType, attrId, verificationId
+    })
   })
 
   return io

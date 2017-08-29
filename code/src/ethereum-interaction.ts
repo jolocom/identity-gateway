@@ -8,7 +8,6 @@ export class EthereumInteraction {
 
   async getEtherBalance({walletAddress} : {walletAddress : string})
   {
-    console.log(walletAddress)
     return await this._walletManager.getBalance({mainAddress: walletAddress})
   }
 
