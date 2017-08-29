@@ -103,7 +103,17 @@ export async function main(config = null) : Promise<any> {
         form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
 
-      return (await req(`${identity}/identity/${attrType}/${attrId}`))
+      const response = (await req({
+        method: 'GET',
+        uri: `${identity}/identity/${attrType}/${attrId}`,
+        resolveWithFullResponse: true
+      }))
+
+      let attribute = response.body
+      if (response.headers['content-type'].indexOf('application/json') === 0) {
+        attribute = JSON.parse(response.body)
+      }
+      return attribute
     }
     const verificationsRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
       const cookieJar = request.jar()

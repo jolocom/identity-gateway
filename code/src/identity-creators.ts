@@ -17,8 +17,9 @@ export class GatewayIdentityCreator {
     this._getMainAddressBySeedPhrase = getMainAddressBySeedPhrase
   }
 
-  async createIdentity({userName, seedPhrase} :
-                       {userName : string, seedPhrase : string})
+  async createIdentity({userName, seedPhrase, dontStoreWalletAddress} :
+                       {userName : string, seedPhrase : string,
+                        dontStoreWalletAddress? : boolean})
   {
     const keyPair = await this._privateKeyGenerator.generate({
       name: `https://identity.jolocom.com/${userName}`,
@@ -30,11 +31,13 @@ export class GatewayIdentityCreator {
       userName, keyPair, seedPhrase
     })
 
-    await this._identityStore.linkIdentity({userId, identities: {
-        type: 'ethereum:wallet',
-        identifier: await this._getMainAddressBySeedPhrase(seedPhrase)
-      }
-    })
+    if (!dontStoreWalletAddress) {
+      await this._identityStore.linkIdentity({userId, identities: {
+          type: 'ethereum:wallet',
+          identifier: await this._getMainAddressBySeedPhrase(seedPhrase)
+        }
+      })
+    }
   }
 }
 

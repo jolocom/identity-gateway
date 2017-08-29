@@ -58,6 +58,9 @@ export class AttributeVerifier {
         return false
       }
     } else {
+      if (typeof attrValue === "string") {
+        attrValue = JSON.parse(attrValue)
+      }
       if (!_.isEqual(retrievedAttribute, attrValue)) {
         return false
       }
@@ -65,7 +68,7 @@ export class AttributeVerifier {
 
     const serialized = !attrIsString ? stringify(retrievedAttribute) : retrievedAttribute
     
-    const signature = await this._dataSigner.signData({data: retrievedAttribute, seedPhrase})
+    const signature = await this._dataSigner.signData({data: serialized, seedPhrase})
     await this._verificationSender({
       sourceIdentitySignature, identity, attrType, attrId, signature,
       sourceLinkedIdentities: {ethereum: hasEthereum}
