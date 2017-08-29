@@ -4,9 +4,9 @@
   "description": "Jolocom verification service",
   "main": "build/main.js",
   "scripts": {
-    "start": "npm run prepare && npm run dev --",
-    "dev": "better-npm-run build:dev",
-    "devmon": "better-npm-run build:devmon",
+    "start": "node build/main.js",
+    "dev": "better-npm-run dev",
+    "devmon": "better-npm-run devmon",
     "prepare": "tsc",
     "prepare:watch": "tsc --watch",
     "typings": "typings",
@@ -15,13 +15,13 @@
     "testrpc": "testrpc --account='0xa2985156e3da3046101ae2b26093f647fed9d6ce31ffeb4d975d143ac69e5b46,1000000000000000000000001' --account='0x217bd5bc9087a7349c771bc78da459bf2862c804eabbf3b54f16193c67f9a95d,5000000000000000000000001'"
   },
   "betterScripts": {
-    "build:devmon": {
+    "devmon": {
       "command": "nodemon --watch build build/main.js",
       "env": {
         "NODE_ENV": "dev"
       }
     },
-    "build:dev": {
+    "dev": {
       "command": "node --trace-warnings build/main.js",
       "env": {
         "NODE_ENV": "dev"

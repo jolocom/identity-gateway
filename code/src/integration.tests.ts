@@ -114,8 +114,6 @@ export async function devPostInit(options = {}) {
       seedPhrase: getOption('THIRD_USER_SEED_PHRASE') || 'user3 seed phrase'
     }
 
-    console.log(firstUser, secondUser, thirdUser)
-    
     const session_1 = request.defaults({jar: request.jar()})
     const session_2 = request.defaults({jar: request.jar()})
     const session_3 = request.defaults({jar: request.jar()})
