@@ -63,6 +63,8 @@
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4",
     "sequelize": "^4.4.2",
+    "sequelize-cli": "^2.8.0",
+    "sequelize-import": "^1.2.1",
     "smartwallet-contracts": "jolocom/smartwallet-contracts",
     "socket.io": "^2.0.3",
     "source-map-support": "^0.4.0",
