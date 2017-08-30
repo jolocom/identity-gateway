@@ -14,7 +14,7 @@ export class EthereumInteraction {
   async sendEther({seedPhrase, receiver, amountEther, data, gasInWei}) :
     Promise<{txHash}>
   {
-    const wallet = this._walletManager.login({seedPhrase, pin: '1111'})
+    const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
     const txHash = await wallet.sendEther({
       receiver, amountEther, data, gasInWei, pin: '1111'
     })
