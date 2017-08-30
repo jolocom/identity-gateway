@@ -3,6 +3,7 @@ require('source-map-support').install()
 require('regenerator-runtime/runtime')
 import * as _ from 'lodash'
 import * as URL from 'url-parse'
+import * as path from 'path'
 import * as http from 'http'
 import { spawnSync } from 'child_process'
 import * as bluebird from 'bluebird'
@@ -53,11 +54,14 @@ export async function main(config = null) : Promise<any> {
     })
     await sequelize.authenticate()
 
-    const sequelizeModels = defineSequelizeModels(sequelize)
+    const sequelizeModels = require('sequelize-import')(
+      path.resolve('./sequelize/models'), sequelize,
+      {exclude: ['index.js']}
+    )
     if (DEVELOPMENT_MODE || config.syncDB || process.env.SYNC_DB === 'true') {
       await sequelize.sync()
     }
-
+    
     let privateKeySize = DEVELOPMENT_MODE ? 512 : 2048
     if (process.env.PRIV_KEY_SIZE){
       privateKeySize = parseInt(process.env.PRIV_KEY_SIZE)

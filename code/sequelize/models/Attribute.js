@@ -1,10 +1,10 @@
 'use strict';
 module.exports = function(sequelize, DataTypes) {
   var Attribute = sequelize.define('Attribute', {
-    type: Sequelize.STRING,
-    dataType: Sequelize.STRING,
-    key: Sequelize.STRING,
-    value: Sequelize.TEXT
+    type: DataTypes.STRING,
+    dataType: DataTypes.STRING,
+    key: DataTypes.STRING,
+    value: DataTypes.TEXT
   }, {
     classMethods: {
       associate: function(models) {
