@@ -1,6 +1,6 @@
 'use strict';
 module.exports = function(sequelize, DataTypes) {
-  var Identity = sequelize.define('Identity', {
+  var Identity = sequelize.define('identity', {
     userName: DataTypes.STRING,
     seedPhraseHash: DataTypes.STRING,
     privateKey: DataTypes.STRING,

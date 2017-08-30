@@ -12,6 +12,8 @@ import * as Sequelize from 'sequelize'
 import * as redis from 'redis'
 const session = require('express-session')
 const RedisStore = require('connect-redis')(session)
+global['SEQUELIZE_MODEL_FACTORY'] = true
+const createSequelizeModels = require('../sequelize/models')
 import { DataSigner } from './data-signer'
 import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
@@ -23,7 +25,6 @@ import { MemoryAccessRights, SequelizeAccessRights } from './access-rights'
 import { MemoryGatewayIdentityStore, SequelizeGatewayIdentityStore } from './identity-store'
 import WalletManager from 'smartwallet-contracts/lib/manager'
 import Wallet from 'smartwallet-contracts/lib/wallet'
-import { defineSequelizeModels } from './sequelize/models'
 import { createApp, createSocketIO } from './app'
 import { devPostInit } from './integration.tests'
 import * as openpgp from 'openpgp'
@@ -49,15 +50,34 @@ export async function main(config = null) : Promise<any> {
   }
 
   try {
-    const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://', {
-      logging: process.env.LOG_SQL === 'true'
-    })
+    let db
+    if (DEVELOPMENT_MODE) {
+      db = createSequelizeModels({
+        databaseUrl: 'sqlite://'
+      })
+    } else {
+      db = createSequelizeModels({
+        useEnvVariable: 'DATABASE'
+      })
+    }
+    const sequelize = db.sequelize
+    const sequelizeModels = _(db).map((model, key) => {
+      if (['sequelize', 'Sequelize'].indexOf(key) >= 0) {
+        return
+      }
+
+      return [_.upperFirst(key), model]
+    }).filter(pair => !!pair).fromPairs().valueOf()
+    
+    // const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://', {
+    //   logging: process.env.LOG_SQL === 'true'
+    // })
     await sequelize.authenticate()
 
-    const sequelizeModels = require('sequelize-import')(
-      path.resolve('./sequelize/models'), sequelize,
-      {exclude: ['index.js']}
-    )
+    // const sequelizeModels = require('sequelize-import')(
+    //   path.resolve('./sequelize/models'), sequelize,
+    //   {exclude: ['index.js']}
+    // )
     if (DEVELOPMENT_MODE || config.syncDB || process.env.SYNC_DB === 'true') {
       await sequelize.sync()
     }
@@ -94,7 +114,7 @@ export async function main(config = null) : Promise<any> {
       }
     }
     const accessRights = new SequelizeAccessRights({
-      ruleModel: sequelizeModels.Rule
+      ruleModel: sequelizeModels.AccessRule
     })
     // const accessRights = new MemoryAccessRights()
     const attributeRetriever = async ({sourceIdentitySignature, identity, attrType, attrId}) => {
