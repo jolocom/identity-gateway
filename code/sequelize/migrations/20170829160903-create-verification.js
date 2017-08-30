@@ -1,7 +1,7 @@
 'use strict';
 module.exports = {
   up: function(queryInterface, Sequelize) {
-    return queryInterface.createTable('Verifications', {
+    return queryInterface.createTable('verifications', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -11,7 +11,7 @@ module.exports = {
       attributeId: {
         type: Sequelize.INTEGER,
         references: {
-          model: 'Attributes',
+          model: 'attributes',
           key: 'id'
         },
         onUpdate: 'cascade',

@@ -53,7 +53,7 @@ export async function main(config = null) : Promise<any> {
     let db
     if (DEVELOPMENT_MODE) {
       db = createSequelizeModels({
-        databaseUrl: 'sqlite://'
+        databaseUrl: process.env.DATABASE || 'sqlite://'
       })
     } else {
       db = createSequelizeModels({
@@ -69,16 +69,10 @@ export async function main(config = null) : Promise<any> {
       return [_.upperFirst(key), model]
     }).filter(pair => !!pair).fromPairs().valueOf()
     
-    // const sequelize = new Sequelize(process.env.DATABASE || 'sqlite://', {
-    //   logging: process.env.LOG_SQL === 'true'
-    // })
     await sequelize.authenticate()
-
-    // const sequelizeModels = require('sequelize-import')(
-    //   path.resolve('./sequelize/models'), sequelize,
-    //   {exclude: ['index.js']}
-    // )
-    if (DEVELOPMENT_MODE || config.syncDB || process.env.SYNC_DB === 'true') {
+    if ((DEVELOPMENT_MODE && process.env.SYNC_DB !== 'false')
+        || config.syncDB || process.env.SYNC_DB === 'true')
+    {
       await sequelize.sync()
     }
     
