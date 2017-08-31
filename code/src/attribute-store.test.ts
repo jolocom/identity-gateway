@@ -9,11 +9,11 @@ function testAttributeStore({attributeStore} : {attributeStore : AttributeStore}
 
     await attributeStore.storeStringAttribute({userId: 'john', type: 'email', id: 'primary', value: 'test@test.com'})
     email = await attributeStore.retrieveAttribute({userId: 'john', type: 'email', id: 'primary'})
-    expect(email).to.equal({value: 'test@test.com', dataType: 'string'})
+    expect(email).to.deep.equal({value: 'test@test.com', dataType: 'string'})
     
     await attributeStore.deleteAttribute({userId: 'john', type: 'email', id: 'primary'})
     email = await attributeStore.retrieveAttribute({userId: 'john', type: 'email', id: 'primary'})
-    expect(email).to.equal(undefined)
+    expect(email).to.deep.equal(undefined)
   })
 }
 
