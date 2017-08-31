@@ -147,7 +147,7 @@ const app = express()
             userID: req.user.id,
             identity: req.body.identity,
             oneTimeToken: req.body.oneTimeToken,
-            pattern: req.body.pattern,
+            pattern: pattern,
             read: req.body.read,
             write: req.body.write,
             expiryDate: req.body.expiryDate && moment(req.body.expiryDate)
