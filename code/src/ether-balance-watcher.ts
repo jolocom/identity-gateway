@@ -40,8 +40,8 @@ export default class EtherBalanceWatcher {
     this._checking = true
     await Promise.all(Object.keys(this._balances).map(async address => {
       const oldBalance = this._balances[address]
-      // const newBalance = this._walletManager.getBalance({mainAddress: address})
-      const newBalance = oldBalance ? (parseFloat(oldBalance) + 0.001).toString() : '0.001'
+      const newBalance = await this._walletManager.getBalance({mainAddress: address})
+      // const newBalance = oldBalance ? (parseFloat(oldBalance) + 0.001).toString() : '0.001'
       if (oldBalance !== newBalance) {
         this._balances[address] = newBalance
         this.events.emit('ether.balance.changed', {
@@ -100,12 +100,15 @@ export class EtherBalanceDispatcher {
     })
 
     client.on('ether.balance.unwatch', ({walletAddress}) => {
+      if (!walletAddress || !/^0x[A-Za-z0-9]+$/.test(walletAddress)) {
+        console.error('got invalid stop watching address', walletAddress)
+      }
       this.stopWatching({userID, walletAddress})
     })
   }
 
   startWatching({userID, walletAddress}) {
-    console.log('start watching', walletAddress, 'for user', userID)
+    // console.log('start watching', walletAddress, 'for user', userID)
 
     this._userToWallets[userID] = this._userToWallets[userID] || {}
     this._userToWallets[userID][walletAddress] = true
@@ -117,7 +120,7 @@ export class EtherBalanceDispatcher {
   }
 
   stopWatching({userID, walletAddress} : {userID : string, walletAddress? : string}) {
-    console.log('stop watching', walletAddress, 'for user', userID)
+    // console.log('stop watching', walletAddress, 'for user', userID)
 
     if (walletAddress) {
       this._userToWallets[userID] && delete this._userToWallets[userID][walletAddress]
@@ -134,8 +137,8 @@ export class EtherBalanceDispatcher {
   stopWatchingWallets({userID}) {
     _.each(this._userToWallets[userID] || {}, (irrelevant, walletAddresses) => {
       _.each(walletAddresses, (_, walletAddress) => {
-        console.log(walletAddress)
-        this.stopWatching({walletAddress, userID})
+        // console.log(walletAddress)
+        // this.stopWatching({walletAddress, userID})
       })
     })
   }
