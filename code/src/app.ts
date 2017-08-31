@@ -1,3 +1,6 @@
+import { SocketClientMap } from './socket-client-map';
+import { VerificationEventDispatcher } from './verification-event-dispatcher';
+import { EtherBalanceDispatcher } from './ether-balance-watcher';
 import { DataSigner } from './data-signer';
 import * as _ from 'lodash'
 import * as moment from 'moment'
@@ -377,7 +380,10 @@ export function accessRightsMiddleware({accessRights, identityStore} :
   }
 }
 
-export function createSocketIO({server, sessionSecret, sessionStore, verificationStore}) {
+export function createSocketIO({
+  server, sessionSecret, sessionStore, verificationStore,
+  etherBalanceWatcher
+}) {
   const io = require('socket.io')(server)
   io.use(passportSocketIo.authorize({
     key: 'connect.sid',
@@ -387,31 +393,14 @@ export function createSocketIO({server, sessionSecret, sessionStore, verificatio
     cookieParser: cookieParser
   }));
 
-  const clients = {}
-  io.on('connection', function(client) {
-    // console.log('Client connected...', client.request.user)
-    clients[client.request.user.id] = clients[client.request.user.id] || {}
-    clients[client.request.user.id][client.id] = client
+  const socketClientMap = new SocketClientMap()
+  socketClientMap.setup({io})
 
-    client.on('disconnect', function() {
-      delete clients[client.request.user.id][client.id]
-   });
-  })
+  const etherBalanceDispatcher = new EtherBalanceDispatcher({etherBalanceWatcher})
+  etherBalanceDispatcher.setup({io, clients: socketClientMap.clients})
 
-  verificationStore.events.on('verification.stored', ({
-      userId, attrType, attrId, verificationId
-  }) => {
-    const client = clients[userId]
-    if (!client) {
-      return
-    }
-
-    _.each(clients[userId], client => {
-      client.emit('verification.stored', {
-        attrType, attrId, verificationId
-      })
-    })
-  })
+  const verificationEventDispatcher = new VerificationEventDispatcher()
+  verificationEventDispatcher.setup({clients: socketClientMap.clients, verificationStore})
 
   return io
 }

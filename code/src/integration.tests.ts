@@ -90,7 +90,7 @@ export async function devPostInit(options = {}) {
 
     logStep('Start')
 
-    const gatewayURL = 'http://localhost:' + (getOption('identityPort') || '5678')
+    const gatewayURL = 'http://localhost:' + (getOption('IDENTITY_PORT') || '5678')
     const testEthereumIdentity = getBooleanOption('TEST_ETHEREUM_IDENTITY')
     const testAttributeVerification = getBooleanOption('TEST_ATTRIBUTE_VERIFICATION')
     const testAttributeCreation = testAttributeVerification || getBooleanOption('TEST_ATTRIBUTE_CREATION')
