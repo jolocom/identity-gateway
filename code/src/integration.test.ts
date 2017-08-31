@@ -5,12 +5,14 @@ import { main } from './main'
 import * as tests from './integration.tests'
 
 
-describe.only('Integration test', function() {
+describe('Integration test', function() {
   let server
 
   this.timeout(5000)
 
   before(async () => {
+    process.env.DATABASE = 'sqlite://'
+
     server = await main({
       sessionSecret: 'test session secret',
       syncDB: true,
@@ -30,7 +32,7 @@ describe.only('Integration test', function() {
     })
   })
 
-  it.only('should be able to do everything', async () => {
+  it('should be able to do everything', async () => {
     await tests.devPostInit({
       testEthereumIdentity: true,
       testAttributeVerification: true

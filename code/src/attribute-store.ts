@@ -23,27 +23,36 @@ export class MemoryAttributeStore implements AttributeStore {
     this.attributes = {}
   }
 
-  async storeStringAttribute({userId, type, id, value} :
-                             {userId : string, type : string, id : string, value : string}) {
+  async _storeAttribute({userId, type, id, dataType, value} :
+                        {userId : string, type : string, id : string,
+                         dataType : string, value : string}) {
     if (!this.attributes[userId]) {
       this.attributes[userId] = {}
     }
     const userAttributes = this.attributes[userId]
 
     const attrKey = `${type}_${id}`
-    userAttributes[attrKey] = value
+    userAttributes[attrKey] = {value, dataType}
+  }
+
+  async storeStringAttribute({userId, type, id, value} :
+                             {userId : string, type : string, id : string, value : string}) {
+    this._storeAttribute({userId, type, id, dataType: 'string', value})
   }
 
   async storeJsonAttribute({userId, type, id, value} :
                              {userId : string, type : string, id : string, value : any}) {
-      this.storeStringAttribute({userId, type, id, value})
+      this._storeAttribute({userId, type, id, dataType: 'json', value})
   }
 
   async retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
     const userAttributes = this.attributes[userId] || {}
     const attrKey = `${type}_${id}`
-    const value = userAttributes[attrKey]
-    return {value, dataType: typeof value === 'string' ? 'string' : 'json'}
+    const attribute = userAttributes[attrKey]
+    if (!attribute) {
+      return undefined
+    }
+    return {value: attribute.value, dataType: attribute.dataType}
   }
 
   async deleteAttribute({userId, type, id} : {userId : string, type : string, id : string}) {
@@ -105,6 +114,9 @@ export class SequelizeAttributeStore implements AttributeStore {
     const attribute = await this._attributeModel.findOne({where: {
       identityId: userId, type, key: id,
     }})
+    if (!attribute) {
+      return undefined
+    }
     return {
       value: attribute.dataType === 'string' ? attribute.value : JSON.parse(attribute.value),
       dataType: attribute.dataType

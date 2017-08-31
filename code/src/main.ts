@@ -12,8 +12,7 @@ import * as Sequelize from 'sequelize'
 import * as redis from 'redis'
 const session = require('express-session')
 const RedisStore = require('connect-redis')(session)
-global['SEQUELIZE_MODEL_FACTORY'] = true
-const createSequelizeModels = require('../sequelize/models')
+import { initSequelize } from './sequelize/utils'
 import { DataSigner } from './data-signer'
 import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
@@ -50,25 +49,10 @@ export async function main(config = null) : Promise<any> {
   }
 
   try {
-    let db
-    if (DEVELOPMENT_MODE) {
-      db = createSequelizeModels({
-        databaseUrl: process.env.DATABASE || 'sqlite://'
-      })
-    } else {
-      db = createSequelizeModels({
-        useEnvVariable: 'DATABASE'
-      })
-    }
-    const sequelize = db.sequelize
-    const sequelizeModels = _(db).map((model, key) => {
-      if (['sequelize', 'Sequelize'].indexOf(key) >= 0) {
-        return
-      }
+    const {sequelize, sequelizeModels} = await initSequelize({
+      devMode: DEVELOPMENT_MODE
+    })
 
-      return [_.upperFirst(key), model]
-    }).filter(pair => !!pair).fromPairs().valueOf()
-    
     await sequelize.authenticate()
     if ((DEVELOPMENT_MODE && process.env.SYNC_DB !== 'false')
         || config.syncDB || process.env.SYNC_DB === 'true')

@@ -9,7 +9,7 @@ export interface AccessRights {
         })
   revoke({userID, identity, oneTimeToken, pattern, read, write} :
          {userID : string, identity : string, pattern : string,
-          read: boolean, write: boolean, expiryDate? : moment.Moment, oneTimeToken? : string
+          read : boolean, write : boolean, expiryDate? : moment.Moment, oneTimeToken? : string
          })
   check({userID, identity, path} : {userID : string, identity : string, path : string})
        : Promise<{read : boolean, write : boolean}>
@@ -45,7 +45,7 @@ export class MemoryAccessRights implements AccessRights {
     identity = normalizedIdentity(identity)
     const identityRules = _(this.rules[userID])
       .map((rule, idx) => ({...rule, idx}))
-      .filter(rule => rule.identity === identity)
+      .filter(rule => minimatch(identity, rule.identity))
       .filter(rule => !rule.token || rule.token === oneTimeToken)
       .filter(rule => !rule.expiryDate || rule.expiryDate.isAfter(this._getNow()))
       .filter(rule => minimatch(path, rule.pattern))
@@ -78,11 +78,11 @@ export class MemoryAccessRights implements AccessRights {
 
    revoke({userID, identity, oneTimeToken, pattern, read, write} :
           {userID : string, identity : string, pattern : string,
-           read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
+           read : boolean, write : boolean, expiryDate? : moment.Moment, oneTimeToken? : string
           })
           {
             identity = normalizedIdentity(identity)
-            if(read==false && write==false){
+            if (read === false && write === false) {
               this.rules[userID] = this.rules[userID].filter(
                 rule => !(rule.identity === identity && rule.pattern === pattern))
             }else{
@@ -117,7 +117,8 @@ export class SequelizeAccessRights implements AccessRights {
               })
   {
     await this._ruleModel.create({
-      identityId: userID, requester: identity, pattern, read, write, expiryDate, oneTimeToken
+      identityId: userID, requester: identity, pattern, read, write,
+      expiryDate: expiryDate && expiryDate.toDate(), oneTimeToken
     })
   }
 
@@ -128,17 +129,17 @@ export class SequelizeAccessRights implements AccessRights {
     identity = normalizedIdentity(identity)
     let identityRules = await this._ruleModel.findAll({where: {
       identityId: userID,
-      requester: identity
     }})
 
     identityRules = _(identityRules)
+      .filter(rule => minimatch(identity, rule.requester))
       .filter(rule => !rule.token || rule.token === oneTimeToken)
-      .filter(rule => !rule.expiryDate || rule.expiryDate.isAfter(this._getNow()))
+      .filter(rule => !rule.expiryDate || moment(rule.expiryDate).isAfter(this._getNow()))
       .filter(rule => minimatch(path, rule.pattern))
       .valueOf()
 
     if (oneTimeToken) {
-      await this._ruleModel.delete({where: {oneTimeToken}})
+      await this._ruleModel.destroy({where: {identityId: userID, oneTimeToken}})
     }
 
     return {
@@ -167,17 +168,17 @@ export class SequelizeAccessRights implements AccessRights {
 
    async revoke({userID, identity, oneTimeToken, pattern, read, write} :
           {userID : string, identity : string, pattern : string,
-           read: boolean, write: false, expiryDate? : moment.Moment, oneTimeToken? : string
+           read : boolean, write : boolean, expiryDate? : moment.Moment, oneTimeToken? : string
           })
           {
             identity = normalizedIdentity(identity)
-            if(read==false && write==false){
+            if (read == false && write == false) {
               await this._ruleModel.destroy({where: {
                 identityId: userID,
                 pattern: pattern,
                 requester: identity
               }})
-            }else{
+            } else {
               await this._ruleModel.update(
               {
                 read: read,
