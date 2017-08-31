@@ -15,9 +15,9 @@ export async function createIdentities({logStep, gatewayURL, sessions, users}) {
       uri: `${gatewayURL}/${users[i].userName}`,
       form: {
         seedPhrase: users[i].seedPhrase,
-        dontStoreWalletAddress:
+        overrideWalletAddress:
           users[i].seedPhrase.indexOf('seed phrase') > 0
-          ? 'true'
+          ? '0xdeadbeef'
           : undefined
       }
     })
@@ -29,6 +29,17 @@ export async function createIdentities({logStep, gatewayURL, sessions, users}) {
       uri: gatewayURL + '/login',
       form: {seedPhrase: users[i].seedPhrase}
     })
+
+    let ethereumInfo = await sessions[i]({
+      method: 'GET',
+      uri: `${gatewayURL}/${users[i].userName}/ethereum`,
+      form: {seedPhrase: users[i].seedPhrase}
+    })
+    if (typeof ethereumInfo === 'string') {
+      ethereumInfo = JSON.parse(ethereumInfo)
+    }
+
+    console.log('Ethereum identity info for user ' + (i + 1), ethereumInfo)
   }
 }
 
@@ -83,6 +94,7 @@ export async function devPostInit(options = {}) {
     const testEthereumIdentity = getBooleanOption('TEST_ETHEREUM_IDENTITY')
     const testAttributeVerification = getBooleanOption('TEST_ATTRIBUTE_VERIFICATION')
     const testAttributeCreation = testAttributeVerification || getBooleanOption('TEST_ATTRIBUTE_CREATION')
+    const phoneAttribute = getOption('TEST_CREATE_PHONE_ATTRIBUTE')
     const firstUser = {
       create: true,
       userName: getOption('FIRST_USER_NAME') || 'joe',
@@ -174,6 +186,50 @@ export async function devPostInit(options = {}) {
           write: 'true'
         }
       })
+
+      if (phoneAttribute && phoneAttribute !== 'false') {
+        logStep('Storing phone attribute')
+
+        await session_1({
+          method: 'PUT',
+          uri: `${gatewayURL}/${firstUser.userName}/identity/phone/primary`,
+          body: {value: phoneAttribute !== 'true' ? phoneAttribute : '0049123456789', type: 'personal'},
+          json: true
+        })
+
+        logStep('Retrieving phone attribute')
+
+        console.log('Stored phone attribute', await session_1({
+          method: 'GET',
+          uri: `${gatewayURL}/${firstUser.userName}/identity/phone/primary`,
+        }))
+
+        logStep('Granting access to e-mail attribute')
+
+        await session_1({
+          method: 'POST',
+          uri: `${gatewayURL}/${firstUser.userName}/access/grant`,
+          form: {
+            identity: `${gatewayURL}/${secondUser.userName}`,
+            pattern: '/identity/phone/primary',
+            read: 'true',
+            write: 'false'
+          },
+        })
+
+        logStep('Granting write access to phone attribute verifications')
+
+        await session_1({
+          method: 'POST',
+          uri: `${gatewayURL}/${firstUser.userName}/access/grant`,
+          form: {
+            identity: `${gatewayURL}/${secondUser.userName}`,
+            pattern: '/identity/phone/primary/verifications',
+            read: 'true',
+            write: 'true'
+          }
+        })
+      }
     }
 
     if (testAttributeVerification) {

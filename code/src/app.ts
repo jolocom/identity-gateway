@@ -121,7 +121,7 @@ const app = express()
     try {
       await identityCreator.createIdentity({
         userName: req.params.userName, seedPhrase: req.body.seedPhrase,
-        dontStoreWalletAddress: req.body.dontStoreWalletAddress
+        overrideWalletAddress: req.body.overrideWalletAddress
       })
     } catch(e) {
       console.error(e)
@@ -390,10 +390,11 @@ export function createSocketIO({server, sessionSecret, sessionStore, verificatio
   const clients = {}
   io.on('connection', function(client) {
     // console.log('Client connected...', client.request.user)
-    clients[client.request.user.id] = client
+    clients[client.request.user.id] = clients[client.request.user.id] || {}
+    clients[client.request.user.id][client.id] = client
 
     client.on('disconnect', function() {
-      delete clients[client.request.user.id]
+      delete clients[client.request.user.id][client.id]
    });
   })
 
@@ -405,8 +406,10 @@ export function createSocketIO({server, sessionSecret, sessionStore, verificatio
       return
     }
 
-    clients[userId].emit('verification.stored', {
-      attrType, attrId, verificationId
+    _.each(clients[userId], client => {
+      client.emit('verification.stored', {
+        attrType, attrId, verificationId
+      })
     })
   })
 

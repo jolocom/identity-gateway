@@ -8,7 +8,11 @@ export class EthereumInteraction {
 
   async getEtherBalance({walletAddress} : {walletAddress : string})
   {
-    return await this._walletManager.getBalance({mainAddress: walletAddress})
+    if (walletAddress !== '0xdeadbeef') {
+      return await this._walletManager.getBalance({mainAddress: walletAddress})
+    } else {
+      return '0o0'
+    }
   }
 
   async sendEther({seedPhrase, receiver, amountEther, data, gasInWei}) :
