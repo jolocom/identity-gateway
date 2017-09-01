@@ -32,7 +32,8 @@ export function createCustomStrategy({identityStore, identityUrlBuilder, publicK
 
 export function setupSessionSerialization(passport, {identityStore, identityUrlBuilder}) {
   passport.serializeUser(async function(user, done) {
-    done(null, user.id ? `name:${user.userName}` : `uri:${user.identity}`)
+    const serialized = user.id ? `name:${user.userName}` : `uri:${user.identity}`
+    done(null, serialized)
   });
 
   passport.deserializeUser(async function(serialized, done) {
