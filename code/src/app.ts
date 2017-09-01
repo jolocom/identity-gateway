@@ -307,6 +307,16 @@ const app = express()
         res.json(await getEthereumAccountByUserId(req.user.id))
       }
     },
+    '/:userName/ethereum/wallet-address': {
+      get: async (req, res) => {
+        res.send((await getEthereumAccountByUserId(req.user.id)).walletAddress)
+      }
+    },
+    '/:userName/ethereum/identity-address': {
+      get: async (req, res) => {
+        res.send((await getEthereumAccountByUserId(req.user.id)).identityAddress)
+      }
+    },
     '/:userName/ethereum/get-balance': {
       post: async (req, res) => {
         res.json({
