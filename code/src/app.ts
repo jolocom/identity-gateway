@@ -367,12 +367,20 @@ export function accessRightsMiddleware({accessRights, identityStore} :
     }
 
     const userID = await identityStore.getUserIdByUserName(req.params.userName)
+    console.log(userID, req.params.userName, req.user.id, req.user.userName)
     if (req.user.id === userID) {
+      console.log('because 1')
       return next()
     }
-    if (req.client && await accessRights.check({userID, identity: req.user.identity, path: req.path})) {
+
+    const allowed = await accessRights.check({userID, identity: req.user.identity, path: req.path})
+    if (allowed.read && req.method === 'GET') {
+      return next()
+    } else if (allowed.write && ['POST', 'PUT'].indexOf(req.method) >= 0) {
       return next()
     }
+    console.log('because 2', {userID, identity: req.user.identity, path: req.path})
+
     res.status(403).send('Access denied')
   }
 }

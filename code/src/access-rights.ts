@@ -135,6 +135,7 @@ export class SequelizeAccessRights implements AccessRights {
       .filter(rule => minimatch(identity, rule.requester))
       .filter(rule => !rule.token || rule.token === oneTimeToken)
       .filter(rule => !rule.expiryDate || moment(rule.expiryDate).isAfter(this._getNow()))
+      // .each(rule => console.log(rule, minimatch(path, rule.pattern)))
       .filter(rule => minimatch(path, rule.pattern))
       .valueOf()
 
