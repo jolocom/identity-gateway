@@ -1,9 +1,10 @@
 {
-  "name": "jolocom-verification-service",
+  "name": "identity-gateway",
   "version": "0.0.1",
   "description": "Jolocom verification service",
   "main": "build/main.js",
   "scripts": {
+    "prestart": "npm run prepare && sequelize db:migrate --env production",
     "start": "node build/main.js",
     "dev": "better-npm-run dev",
     "devmon": "better-npm-run devmon",
