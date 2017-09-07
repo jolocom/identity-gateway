@@ -159,6 +159,17 @@ export async function devPostInit(options = {}) {
     }
 
     if (testAttributeCreation) {
+      logStep('Checking return status of unknown attribute')
+
+      try {
+        await session_1({
+          method: 'GET',
+          uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+        })
+      } catch(e) {
+        expect(e.statusCode).to.equal(404)
+      }
+
       logStep('Storing e-mail attribute')
 
       await session_1({
