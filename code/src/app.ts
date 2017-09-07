@@ -62,8 +62,12 @@ const app = express()
   }))
   app.use(passport.initialize())
   app.use(passport.session())
-  app.use('/proxy', accessRightsMiddleware({ accessRights, identityStore }),
+  app.use('/proxy',
     async (req, res) => {
+      if (!req.isAuthenticated() || !req.user.id) {
+        return res.status(401).send('Not allowed')
+      }
+
       const destination = req.query.url
       const sourceIdentity = req.user.identity
       const sourceIdentitySignature = await dataSigner.signData({
@@ -399,9 +403,15 @@ export function accessRightsMiddleware({accessRights, identityStore} :
     if (req.user.id === userID) {
       return next()
     }
-    if (req.client && await accessRights.check({userID, identity: req.user.identity, path: req.path})) {
+
+    const checkPath = '/' + req.path.split('/').slice(2).join('/')
+    const allowed = await accessRights.check({userID, identity: req.user.identity, path: checkPath})
+    if (allowed.read && req.method === 'GET') {
+      return next()
+    } else if (allowed.write && ['POST', 'PUT'].indexOf(req.method) >= 0) {
       return next()
     }
+
     res.status(403).send('Access denied')
   }
 }

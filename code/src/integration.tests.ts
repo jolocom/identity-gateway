@@ -101,10 +101,10 @@ export async function devPostInit(options = {}) {
       }
       return option
     }
-
+    
     logStep('Start')
 
-    const gatewayURL = 'http://localhost:' + (getOption('identityPort') || '5678')
+    const gatewayURL = 'http://localhost:' + (getOption('IDENTITY_PORT') || '5678')
     const testEthereumIdentity = getBooleanOption('TEST_ETHEREUM_IDENTITY')
     const testAttributeVerification = getBooleanOption('TEST_ATTRIBUTE_VERIFICATION')
     const testAttributeCreation = testAttributeVerification || getBooleanOption('TEST_ATTRIBUTE_CREATION')
@@ -170,11 +170,26 @@ export async function devPostInit(options = {}) {
 
       logStep('Retrieving e-mail attribute')
 
-      console.log('Stored email attribute', await session_1({
+      const storedEmail = await session_1({
         method: 'GET',
         uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
-      }))
+        json: true
+      })
+      console.log('Stored email attribute', storedEmail)
+      expect(storedEmail).to.deep.equal({value: 'vincent@shishkabab.net'})
 
+      logStep('Users should not have access to each others\' attribute unless explicit access is granted')
+      const deniedAccessResponse : any = await new Promise((resolve, reject) => {
+        session_2({
+          method: 'GET',
+          uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
+          json: true,
+          resolveWithFullResponse: true
+        }).then(resolve, resolve).catch(reject)
+      })
+      expect(deniedAccessResponse.body).to.equal(undefined)
+      expect(deniedAccessResponse.statusCode).to.equal(403)
+      
       logStep('Granting access to e-mail attribute')
 
       await session_1({
