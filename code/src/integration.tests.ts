@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import * as _ from 'lodash'
 import * as request from 'request-promise-native'
 
@@ -52,7 +53,7 @@ export async function createEthereumIdentity({logStep, gatewayURL, session, user
     form: {seedPhrase: user.seedPhrase}
   })
 
-  logStep('Getting Ethereum identity info for user' + (user.index + 1))
+  logStep('Getting Ethereum identity info for user ' + (user.index + 1))
 
   let ethereumInfo = await session({
     method: 'GET',
@@ -62,8 +63,21 @@ export async function createEthereumIdentity({logStep, gatewayURL, session, user
   if (typeof ethereumInfo === 'string') {
     ethereumInfo = JSON.parse(ethereumInfo)
   }
-
   console.log('Ethereum identity info', ethereumInfo)
+
+  logStep('Testing separate Ethereum endpoints for user ' + (user.index + 1))
+
+  expect(await session({
+    method: 'GET',
+    uri: `${gatewayURL}/${user.userName}/ethereum/wallet-address`,
+  })).to.equal(ethereumInfo.walletAddress)
+  
+  expect(await session({
+    method: 'GET',
+    uri: `${gatewayURL}/${user.userName}/ethereum/identity-address`,
+  })).to.equal(ethereumInfo.identityAddress)
+
+  logStep('Testing Ethereum balance endpoint for user ' + (user.index + 1))
 
   console.log('Ethereum balance:', await session({
     method: 'POST',
