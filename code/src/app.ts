@@ -230,6 +230,9 @@ const app = express()
         const attribute = (await attributeStore.retrieveAttribute({
           userId, type: req.params.attribute, id: req.params.id
         }))
+        if (!attribute) {
+          return res.status(404).send("Attribute not found")
+        }
         if (attribute.dataType === 'string') {
           res.send(attribute.value)
         } else {
