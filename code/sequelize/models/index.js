@@ -16,7 +16,7 @@ function create(config) {
       logging: process.env.LOG_SQL === 'true'
     });
   } else {
-    var sequelize = new Sequelize(config.databaseUrl, {
+    var sequelize = new Sequelize(config.databaseUrl || config, {
       logging: process.env.LOG_SQL === 'true'
     });
   }

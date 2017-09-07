@@ -17,9 +17,7 @@ export async function initSequelize({devMode}) {
       databaseUrl: process.env.DATABASE || 'sqlite://'
     })
   } else {
-    db = createSequelizeModels({
-      useEnvVariable: 'DATABASE'
-    })
+    db = createSequelizeModels()
   }
   const sequelize = db.sequelize
   const sequelizeModels = _(db).map((model, key) => {
