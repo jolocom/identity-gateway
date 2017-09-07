@@ -157,12 +157,12 @@ const app = express()
   })
 
   const protectedRoutes = {
-    // '/:userName/access': {
+    // /access': {
     //   get: async (req, res) => {
 
     //   }
     // },
-    '/:userName/access/grant': {
+    '/access/grant': {
       post: async (req, res) => {
         const body = req.body
         const patterns = typeof body.pattern === 'string'
@@ -182,7 +182,7 @@ const app = express()
         res.send('OK')
       }
     },
-    '/:userName/access/revoke': {
+    '/access/revoke': {
       post: async (req, res) => {
         let read = stringToBoolean(req.body.read)
         let write = stringToBoolean(req.body.write)
@@ -196,7 +196,7 @@ const app = express()
         res.send('OK')
       }
     },
-    '/:userName/access': {
+    '/access': {
       get: async (req, res) => {
         let rules = await accessRights.list({
           userID: req.user.id
@@ -204,20 +204,20 @@ const app = express()
         res.json(rules)
       }
     },
-    // '/:userName/access/revoke': {
+    // '/access/revoke': {
     //   post: async (req, res) => {
 
     //   }
     // },
-    '/:userName/identity/:attribute': {
+    '/identity/:attribute': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         res.json(await attributeStore.listAttributes({
           userId, type: req.params.attribute
         }))
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         const isString = typeof req.body === 'string'
         const params = {
           userId, type: req.params.attribute, id: uuid(),
@@ -231,9 +231,9 @@ const app = express()
         res.send('OK')
       }
     },
-    '/:userName/identity/:attribute/:id': {
+    '/identity/:attribute/:id': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         const attribute = (await attributeStore.retrieveAttribute({
           userId, type: req.params.attribute, id: req.params.id
         }))
@@ -244,7 +244,7 @@ const app = express()
         }
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         const isString = typeof req.body === 'string'
         const params = {
           userId, type: req.params.attribute, id: req.params.id,
@@ -258,22 +258,22 @@ const app = express()
         res.send('OK')
       },
       delete: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         await attributeStore.deleteAttribute({
           userId, type: req.params.attribute, id: req.params.id
         })
         res.send('OK')
       }
     },
-    '/:userName/identity/:attribute/:id/verifications': {
+    '/identity/:attribute/:id/verifications': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         res.json(await verificationStore.getVerifications({
           userId, attrType: req.params.attribute, attrId: req.params.id
         }))
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         const verificationId = await verificationStore.storeVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verifierIdentity: req.user.identity,
@@ -283,16 +283,16 @@ const app = express()
         res.json({verificationId})
       }
     },
-    '/:userName/identity/:attribute/:id/verifications/:id': {
+    '/identity/:attribute/:id/verifications/:id': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.params.userName)
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
         res.json(await verificationStore.getVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verificationId: req.params.id
         }))
       }
     },
-    '/:userName/verify': {
+    '/verify': {
       post: async (req, res) => {
         await attributeVerifier.verifyAttribute({
           sourceIdentity: req.user.identity,
@@ -306,7 +306,7 @@ const app = express()
         res.send('OK')
       }
     },
-    '/:userName/check': {
+    '/check': {
       post: async (req, res) => {
         res.json(await attributeChecker.checkAttribute({
           sourceIdentity: req.user.identity,
@@ -318,7 +318,7 @@ const app = express()
         }))
       }
     },
-    '/:userName/ethereum/create-identity': {
+    '/ethereum/create-identity': {
       post: async (req, res) => {
         res.json(await ethereumIdentityCreator.createIdentity({
           userId: req.user.id,
@@ -328,29 +328,29 @@ const app = express()
         }))
       }
     },
-    '/:userName/ethereum': {
+    '/ethereum': {
       get: async (req, res) => {
         res.json(await getEthereumAccountByUserId(req.user.id))
       }
     },
-    '/:userName/ethereum/wallet-address': {
+    '/ethereum/wallet-address': {
       get: async (req, res) => {
         res.send((await getEthereumAccountByUserId(req.user.id)).walletAddress)
       }
     },
-    '/:userName/ethereum/identity-address': {
+    '/ethereum/identity-address': {
       get: async (req, res) => {
         res.send((await getEthereumAccountByUserId(req.user.id)).identityAddress)
       }
     },
-    '/:userName/ethereum/get-balance': {
+    '/ethereum/get-balance': {
       post: async (req, res) => {
         res.json({
           ether: await ethereumInteraction.getEtherBalance({walletAddress: req.body.walletAddress})
         })
       }
     },
-    '/:userName/ethereum/send-ether': {
+    '/ethereum/send-ether': {
       post: async (req, res) => {
         await ethereumInteraction.sendEther({
           seedPhrase: req.body.seedPhrase,
@@ -383,10 +383,15 @@ const app = express()
   });
   
   _.each(protectedRoutes, (methods, path) => {
-    _.each(methods, (func, method) => {
+    // path = path.replace('/:userName', '(?:/([A-Za-z0-9\-]+))?')
+    path = '/:userName?' + path
+    
+    _.each(methods, (route, method) => {
+      route = route.handler ? route : {handler: route}
+
       app[method](path, accessRightsMiddleware({
         accessRights, identityStore
-      }), func)
+      }), route.handler)
     })
   })
 
@@ -402,7 +407,8 @@ export function accessRightsMiddleware({accessRights, identityStore} :
       return res.status(401).send('Not allowed')
     }
 
-    const userID = await identityStore.getUserIdByUserName(req.params.userName)
+    const userName = req.params.userName || req.hostname.split('.')[0]
+    const userID = await identityStore.getUserIdByUserName(userName)
     if (req.user.id === userID) {
       return next()
     }

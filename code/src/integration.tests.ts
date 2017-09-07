@@ -1,3 +1,4 @@
+import * as URL from 'url-parse'
 import { expect } from 'chai';
 import * as _ from 'lodash'
 import * as request from 'request-promise-native'
@@ -177,6 +178,18 @@ export async function devPostInit(options = {}) {
       })
       console.log('Stored email attribute', storedEmail)
       expect(storedEmail).to.deep.equal({value: 'vincent@shishkabab.net'})
+
+      logStep('Retrieving e-mail attribute using subdomain')
+
+      const subdomainGatewayURL = [firstUser.userName, (new URL(gatewayURL).hostname)].join('.')
+      expect(await session_1({
+        method: 'GET',
+        uri: `${gatewayURL}/identity/email/primary`,
+        headers: {
+          Host: subdomainGatewayURL
+        },
+        json: true
+      })).to.deep.equal({value: 'vincent@shishkabab.net'})
 
       logStep('Users should not have access to each others\' attribute unless explicit access is granted')
       const deniedAccessResponse : any = await new Promise((resolve, reject) => {
