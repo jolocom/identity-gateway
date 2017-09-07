@@ -13,6 +13,7 @@ import * as URL from 'url-parse'
 import { AccessRights } from './access-rights'
 import { GatewayIdentityStore } from './identity-store'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
+import { InviteStore } from './invite-store';
 import { AttributeStore } from './attribute-store'
 import { VerificationStore, PublicKeyRetrievers } from './verification-store'
 import { AttributeVerifier } from './attribute-verifier'
@@ -24,6 +25,7 @@ import { stringToBoolean } from './utils'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityCreator, ethereumIdentityCreator,
+                           inviteStore,
                            attributeStore, verificationStore,
                            attributeVerifier, attributeChecker,
                            publicKeyRetrievers,
@@ -35,6 +37,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            identityUrlBuilder : IdentityUrlBuilder,
                            identityCreator : GatewayIdentityCreator,
                            ethereumIdentityCreator : EthereumIdentityCreator,
+                           inviteStore : InviteStore,
                            attributeStore : AttributeStore,
                            verificationStore : VerificationStore,
                            attributeVerifier : AttributeVerifier,
@@ -119,15 +122,31 @@ const app = express()
   })
   app.put('/:userName', async (req, res) => {
     try {
-      await identityCreator.createIdentity({
+      const success = await identityCreator.createIdentity({
         userName: req.params.userName, seedPhrase: req.body.seedPhrase,
-        overrideWalletAddress: req.body.overrideWalletAddress
+        overrideWalletAddress: req.body.overrideWalletAddress,
+        inviteCode: req.body.inviteCode
       })
+      if (success) {
+        res.send('OK')
+      } else {
+        res.status(403).send('Forbidden')
+      }
     } catch(e) {
       console.error(e)
       console.trace()
     }
-    res.send('OK')
+  })
+
+  app.post('/registration/create-invite', async (req, res) => {
+    if (!req.user || !req.user.id) {
+      res.status(403).send('Forbidden')
+      return
+    }
+
+    res.json({
+      code: await inviteStore.generate({})
+    })
   })
 
   const protectedRoutes = {

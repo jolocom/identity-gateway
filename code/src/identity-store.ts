@@ -19,6 +19,7 @@ export interface GatewayIdentityStore {
                 identities : Array<{type, identifier}> | {type, identifier}}) : Promise<any>
   getLinkedIdentity({userId, type} : {userId : string, type : string}) : Promise<string>
   getLinkedIdentities({userId} : {userId : string}) : Promise<LinkedIdentitiesMap>
+  isEmpty() : Promise<boolean>
 }
 
 export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
@@ -65,6 +66,10 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
     if (1)
       throw new Error("Not implemented yet")
     return {}
+  }
+
+  async isEmpty() {
+    return Object.keys(this.identities).length === 0
   }
 }
 
@@ -163,5 +168,9 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
         .findAll({where: {identityId: userId}})
       ).map(identity => [identity.type, identity.identifier])
       )
+  }
+
+  async isEmpty() {
+    return (await this._identityModel.findOne({where: {}})) === null
   }
 }
