@@ -1,3 +1,4 @@
+import { InviteStore } from './invite-store';
 import { GatewayIdentityStore } from './identity-store';
 import { GatewayPrivateKeyGenerator, SolidPrivateKeyGenerator } from './private-key-generators';
 
@@ -5,22 +6,32 @@ export class GatewayIdentityCreator {
   private _privateKeyGenerator : GatewayPrivateKeyGenerator
   private _identityStore : GatewayIdentityStore
   private _getMainAddressBySeedPhrase
+  private _inviteStore : InviteStore
 
-
-  constructor({privateKeyGenerator, identityStore, getMainAddressBySeedPhrase} :
+  constructor({privateKeyGenerator, identityStore, getMainAddressBySeedPhrase,
+               inviteStore} :
               {privateKeyGenerator : GatewayPrivateKeyGenerator,
-              identityStore : GatewayIdentityStore,
-              getMainAddressBySeedPhrase : (string) => Promise<string>})
+               identityStore : GatewayIdentityStore,
+               getMainAddressBySeedPhrase : (string) => Promise<string>,
+               inviteStore? : InviteStore})
   {
     this._privateKeyGenerator = privateKeyGenerator
     this._identityStore = identityStore
     this._getMainAddressBySeedPhrase = getMainAddressBySeedPhrase
+    this._inviteStore = inviteStore
   }
 
-  async createIdentity({userName, seedPhrase, overrideWalletAddress} :
+  async createIdentity({userName, seedPhrase, overrideWalletAddress, inviteCode} :
                        {userName : string, seedPhrase : string,
-                        overrideWalletAddress? : string})
+                        overrideWalletAddress? : string,
+                        inviteCode? : string})
   {
+    if (this._inviteStore) {
+      if (!(inviteCode && await this._inviteStore.check({code: inviteCode}))) {
+        return false
+      }
+    }
+
     const keyPair = await this._privateKeyGenerator.generate({
       name: `https://identity.jolocom.com/${userName}`,
       email: `${userName}@identity.jolocom.com`,
@@ -38,6 +49,8 @@ export class GatewayIdentityCreator {
           : overrideWalletAddress
       }
     })
+
+    return true
   }
 }
 

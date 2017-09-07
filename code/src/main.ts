@@ -1,3 +1,5 @@
+import { RandomCodeGenerator } from './code-generator';
+import { SequelizeInviteStore } from './invite-store';
 import { AttributeChecker } from './attribute-checker';
 require('source-map-support').install()
 require('regenerator-runtime/runtime')
@@ -215,6 +217,21 @@ export async function main(config = null) : Promise<any> {
       getEthereumAccountByUri
     })
 
+    let inviteStore = null
+    if (config.firstInviteCode) {
+      inviteStore = new SequelizeInviteStore({
+        inviteModel: sequelizeModels.RegistrationInvite,
+        codeGenerator: new RandomCodeGenerator({
+          codeLength: 16,
+          digitOnly: false
+        })
+      })
+
+      if (await identityStore.isEmpty()) {
+        await inviteStore.generate({code: config.firstInviteCode})
+      }
+    }
+
     const app = createApp({
       accessRights,
       sessionSecret: config.sessionSecret,
@@ -229,7 +246,9 @@ export async function main(config = null) : Promise<any> {
         getMainAddressBySeedPhrase: (seedPhrase) => walletManager.getMainAddressBySeedPhrase(seedPhrase),
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
+        inviteStore
       }),
+      inviteStore,
       dataSigner: new DataSigner({identityStore}),
       ethereumIdentityCreator,
       ethereumInteraction,
