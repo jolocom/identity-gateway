@@ -18,6 +18,7 @@ import { initSequelize } from './sequelize/utils'
 import { DataSigner } from './data-signer'
 import { GatewayPrivateKeyGenerator, DummyGatewayPrivateKeyGenerator } from './private-key-generators'
 import { GatewayIdentityCreator, EthereumIdentityCreator } from './identity-creators'
+import EtherBalanceWatcher from './ether-balance-watcher'
 import { EthereumInteraction } from './ethereum-interaction'
 import { AttributeVerifier } from './attribute-verifier'
 import { MemoryVerificationStore, SequelizeVerificationStore } from './verification-store'
@@ -197,6 +198,7 @@ export async function main(config = null) : Promise<any> {
       )
     }
 
+    const etherBalanceWatcher = new EtherBalanceWatcher({walletManager})
     const ethereumInteraction = new EthereumInteraction({walletManager})
     const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
     const getEthereumAccountByUserId = async (userId : string) => {
@@ -280,6 +282,7 @@ export async function main(config = null) : Promise<any> {
       sessionSecret: config.sessionSecret,
       sessionStore: expressSessionStore,
       verificationStore,
+      etherBalanceWatcher
     })
 
     if (DEVELOPMENT_MODE) {
