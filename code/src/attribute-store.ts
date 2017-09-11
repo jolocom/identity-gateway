@@ -1,21 +1,29 @@
+import * as events from 'events'
 import * as _ from 'lodash'
 
-export interface AttributeStore {
-  storeStringAttribute({userId, type, id, value} :
+export abstract class AttributeStore {
+  public events : events.EventEmitter
+
+  constructor() {
+    this.events = new events.EventEmitter()
+  }
+
+  abstract storeStringAttribute({userId, type, id, value} :
                        {userId : string, type : string, id : string, value : string})
-  storeJsonAttribute({userId, type, id, value} :
+  abstract storeJsonAttribute({userId, type, id, value} :
                      {userId : string, type : string, id : string, value : string})
-  retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string})
+  abstract retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string})
     : Promise<{value : any, dataType : string}>
-  deleteAttribute({userId, type, id} : {userId : string, type : string, id : string})
-  listAttributeTypes({userId}) : Promise<string[]>
-  listAttributes({userId, type}) : Promise<string[]>
+  abstract deleteAttribute({userId, type, id} : {userId : string, type : string, id : string})
+  abstract listAttributeTypes({userId}) : Promise<string[]>
+  abstract listAttributes({userId, type}) : Promise<string[]>
 }
 
-export class MemoryAttributeStore implements AttributeStore {
+export class MemoryAttributeStore extends AttributeStore {
   private attributes
 
   constructor() {
+    super()
     this.clear()
   }
 
@@ -32,7 +40,12 @@ export class MemoryAttributeStore implements AttributeStore {
     const userAttributes = this.attributes[userId]
 
     const attrKey = `${type}_${id}`
+    const created = !userAttributes[attrKey]
     userAttributes[attrKey] = {value, dataType}
+
+    this.events.emit('attribute.' + (created ? 'created' : 'updated'), {
+      userId, type, id, value
+    })
   }
 
   async storeStringAttribute({userId, type, id, value} :
@@ -81,10 +94,11 @@ export class MemoryAttributeStore implements AttributeStore {
   }
 }
 
-export class SequelizeAttributeStore implements AttributeStore {
+export class SequelizeAttributeStore extends AttributeStore {
   private _attributeModel
 
   constructor({attributeModel}) {
+    super()
     this._attributeModel = attributeModel
   }
 
@@ -97,6 +111,10 @@ export class SequelizeAttributeStore implements AttributeStore {
     if (!created) {
       await obj.update({value})
     }
+
+    this.events.emit('attribute.' + (created ? 'created' : 'updated'), {
+      userId, type, id, value
+    })
   }
 
   async storeJsonAttribute({userId, type, id, value} :
@@ -108,6 +126,10 @@ export class SequelizeAttributeStore implements AttributeStore {
     if (!created) {
       await obj.update({value: JSON.stringify(value)})
     }
+
+    this.events.emit('attribute.' + (created ? 'created' : 'updated'), {
+      userId, type, id, value
+    })
   }
 
   async retrieveAttribute({userId, type, id} : {userId : string, type : string, id : string}) {

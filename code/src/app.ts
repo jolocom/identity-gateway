@@ -156,6 +156,10 @@ const app = express()
     })
   })
 
+  // app.post('/:userName?/notify', async (req, res) => {
+  //   res.send('OK')
+  // })
+
   const protectedRoutes = {
     // /access': {
     //   get: async (req, res) => {
@@ -211,13 +215,13 @@ const app = express()
     // },
     '/identity/:attribute': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         res.json(await attributeStore.listAttributes({
           userId, type: req.params.attribute
         }))
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const isString = typeof req.body === 'string'
         const params = {
           userId, type: req.params.attribute, id: uuid(),
@@ -233,7 +237,7 @@ const app = express()
     },
     '/identity/:attribute/:id': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const attribute = (await attributeStore.retrieveAttribute({
           userId, type: req.params.attribute, id: req.params.id
         }))
@@ -247,7 +251,7 @@ const app = express()
         }
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const isString = typeof req.body === 'string'
         const params = {
           userId, type: req.params.attribute, id: req.params.id,
@@ -261,7 +265,7 @@ const app = express()
         res.send('OK')
       },
       delete: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         await attributeStore.deleteAttribute({
           userId, type: req.params.attribute, id: req.params.id
         })
@@ -270,13 +274,13 @@ const app = express()
     },
     '/identity/:attribute/:id/verifications': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         res.json(await verificationStore.getVerifications({
           userId, attrType: req.params.attribute, attrId: req.params.id
         }))
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         const verificationId = await verificationStore.storeVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verifierIdentity: req.user.identity,
@@ -288,7 +292,7 @@ const app = express()
     },
     '/identity/:attribute/:id/verifications/:id': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = await identityStore.getUserIdByUserName(req.params.userName)
         res.json(await verificationStore.getVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verificationId: req.params.id
@@ -410,8 +414,8 @@ export function accessRightsMiddleware({accessRights, identityStore} :
       return res.status(401).send('Not allowed')
     }
 
-    const userName = req.params.userName || req.hostname.split('.')[0]
-    const userID = await identityStore.getUserIdByUserName(userName)
+    req.params.userName = req.params.userName || req.hostname.split('.')[0]
+    const userID = await identityStore.getUserIdByUserName(req.params.userName)
     if (req.user.id === userID) {
       return next()
     }

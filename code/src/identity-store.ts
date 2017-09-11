@@ -11,6 +11,7 @@ export interface GatewayIdentityStore {
   storeIdentity({userName, seedPhrase, keyPair}) : Promise<{userId}>
   getUserBySeedPhrase(seedPhrase) : Promise<{id, userName}>
   getUserIdByUserName(userName) : Promise<string>
+  getUserNameByUserId(userID) : Promise<string>
   getKeyPairBySeedPhrase(seedPhrase) : Promise<KeyPair>
   getPublicKeyByUserName(userName) : Promise<string>
 
@@ -39,6 +40,10 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
 
   async getUserIdByUserName(userName) {
     return (_.find(this.identities, {userName}) || {}).userName
+  }
+
+  async getUserNameByUserId(userID) {
+    return (_.find(this.identities, {id: userID}) || {}).id
   }
 
   async getKeyPairBySeedPhrase(seedPhrase) {
@@ -112,6 +117,11 @@ export class SequelizeGatewayIdentityStore implements GatewayIdentityStore {
   async getUserIdByUserName(userName) {
     const identity = await this._identityModel.findOne({where: {userName}})
     return identity && identity.id
+  }
+
+  async getUserNameByUserId(userID) {
+    const identity = await this._identityModel.findOne({where: {id: userID}})
+    return identity && identity.userName
   }
 
   async getKeyPairBySeedPhrase(seedPhrase) {

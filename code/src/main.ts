@@ -1,3 +1,4 @@
+import { AttributeNotifier } from './attribute-notifier';
 import { RandomCodeGenerator } from './code-generator';
 import { SequelizeInviteStore } from './invite-store';
 import { AttributeChecker } from './attribute-checker';
@@ -159,6 +160,25 @@ export async function main(config = null) : Promise<any> {
         })
       })
     }
+    const attributeNotificationSender = async ({identity, userID, type, id}) => {
+      const userName = await identityStore.getUserNameByUserId(userID)
+      const sourceIdentity = identityUrlBuilder({userName, req: null})
+
+      try {
+        await request({
+          method: 'POST',
+          uri: identity + '/notify',
+          form: {event: 'attribute.update', identity: sourceIdentity, type, id}
+        })
+      } catch (e) {
+        // TODO: Implement
+      }
+    }
+
+    const attributeNotifier = new AttributeNotifier({
+      accessRights, notificationSender: attributeNotificationSender
+    })
+    attributeNotifier.observe(attributeStore)
 
     let expressSessionStore
     if (process.env.SESSION_BACKEND !== 'memory') {
