@@ -4,7 +4,7 @@
   "description": "Jolocom verification service",
   "main": "build/main.js",
   "scripts": {
-    "prestart": "npm run prepare && sequelize db:migrate --env production",
+    "prestart": "npm run prepare && ./node_modules/.bin/sequelize db:migrate --env production",
     "start": "node build/main.js",
     "dev": "better-npm-run dev",
     "devmon": "better-npm-run devmon",
