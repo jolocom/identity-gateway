@@ -1,9 +1,17 @@
+import { WalletManager } from 'smartwallet-contracts/lib/manager';
+export type ContractInfoRetriever = ({
+  contractOwnerIdentity, contractID
+}) => Promise<{abi, address}>
+
 export class EthereumInteraction {
   private _walletManager
+  private _contractInfoRetriever : ContractInfoRetriever
 
-  constructor({walletManager})
+  constructor({walletManager, contractInfoRetriever} :
+              {walletManager : WalletManager, contractInfoRetriever : ContractInfoRetriever})
   {
     this._walletManager = walletManager
+    this._contractInfoRetriever = contractInfoRetriever
   }
 
   async getEtherBalance({walletAddress} : {walletAddress : string})
@@ -23,5 +31,23 @@ export class EthereumInteraction {
       receiver, amountEther, data, gasInWei, pin: '1111'
     })
     return {txHash}
+  }
+
+  async executeCall({contractOwnerIdentity, contractID, method, params}) {
+    const {abi, address} = await this._contractInfoRetriever({
+      contractOwnerIdentity, contractID
+    })
+    const res = await this._walletManager.executeCall({abi, address, method, params})
+    return res
+  }
+
+  async executeTransaction({contractOwnerIdentity, contractID, method, params, value, seedPhrase}) {
+    const {abi, address} = await this._contractInfoRetriever({
+      contractOwnerIdentity, contractID
+    })
+    const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
+    return {
+      txHash: await wallet.executeTransaction({abi, address, method, value, params, pin: '1111'})
+    }
   }
 }

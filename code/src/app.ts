@@ -145,6 +145,12 @@ const app = express()
     }
   })
 
+  app.get('/:userName?/ethereum/contracts/:id', ownerMiddleware({identityStore}), async (req, res) => {
+    res.json((await attributeStore.retrieveAttribute({
+      userId: req.ownerUserID, type: 'eth-contract', id: req.params.id,
+    })).value)
+  })
+
   app.post('/registration/create-invite', async (req, res) => {
     if (!req.user || !req.user.id) {
       res.status(403).send('Forbidden')
@@ -364,7 +370,53 @@ const app = express()
         })
         res.send('OK')
       }
-    }
+    },
+    '/ethereum/contracts': {
+      put: async (req, res) => {
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const contractId = uuid()
+        await attributeStore.storeJsonAttribute({
+          userId, type: 'eth-contract', id: contractId,
+          value: req.body
+        })
+        res.json({contractId})
+      }
+    },
+    '/ethereum/contracts/:id': {
+      put: async (req, res) => {
+        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const contractId = req.params.id
+        await attributeStore.storeJsonAttribute({
+          userId, type: 'eth-contract', id: contractId,
+          value: req.body
+        })
+        res.send('OK')
+      }
+    },
+    '/ethereum/execute/transaction': {
+      post: async (req, res) => {
+        res.json(await ethereumInteraction.executeTransaction({
+          seedPhrase: req.body.seedPhrase,
+          contractOwnerIdentity: req.body.contractOwnerIdentity,
+          contractID: req.body.contractID,
+          method: req.body.method,
+          params: req.body.params,
+          value: req.body.value || 0
+        }))
+      }
+    },
+    '/ethereum/execute/call': {
+      post: async (req, res) => {
+        res.json({
+          result: await ethereumInteraction.executeCall({
+            contractOwnerIdentity: req.body.contractOwnerIdentity,
+            contractID: req.body.contractID,
+            method: req.body.method,
+            params: req.body.params
+          })
+        })
+      }
+    },
   }
 
   app.post('/login', function(req, res, next) {
@@ -392,13 +444,30 @@ const app = express()
     _.each(methods, (route, method) => {
       route = route.handler ? route : {handler: route}
 
-      app[method](path, accessRightsMiddleware({
-        accessRights, identityStore
-      }), route.handler)
+      app[method](
+        path,
+        ownerMiddleware({identityStore}),
+        accessRightsMiddleware({
+          accessRights, identityStore
+        }),
+        route.handler
+      )
     })
   })
 
   return app
+}
+
+export function ownerMiddleware({identityStore} :
+                                {identityStore : GatewayIdentityStore})
+{
+  return async (req, res, next) => {
+    const userName = req.params.userName || req.hostname.split('.')[0]
+    const userID = await identityStore.getUserIdByUserName(userName)
+    req.ownerUserName = userName
+    req.ownerUserID = userID
+    return await next()
+  }
 }
 
 export function accessRightsMiddleware({accessRights, identityStore} :
@@ -410,14 +479,14 @@ export function accessRightsMiddleware({accessRights, identityStore} :
       return res.status(401).send('Not allowed')
     }
 
-    const userName = req.params.userName || req.hostname.split('.')[0]
-    const userID = await identityStore.getUserIdByUserName(userName)
-    if (req.user.id === userID) {
+    if (req.user.id === req.ownerUserID) {
       return next()
     }
 
     const checkPath = '/' + req.path.split('/').slice(2).join('/')
-    const allowed = await accessRights.check({userID, identity: req.user.identity, path: checkPath})
+    const allowed = await accessRights.check({
+      userID: req.ownerUserID, identity: req.user.identity, path: checkPath
+    })
     if (allowed.read && req.method === 'GET') {
       return next()
     } else if (allowed.write && ['POST', 'PUT'].indexOf(req.method) >= 0) {
