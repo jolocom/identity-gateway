@@ -87,7 +87,7 @@ export async function createEthereumIdentity({logStep, gatewayURL, session, user
   }))
 }
 
-export async function devPostInit(options = {}) {
+export async function devPostInit(options = {}, {lookupContractAddress = null} = {}) {
   try {
     const logStep = (msg) => {
       console.log('= DEV POST INIT:', msg, '=')
@@ -107,6 +107,7 @@ export async function devPostInit(options = {}) {
 
     const gatewayURL = 'http://localhost:' + (getOption('IDENTITY_PORT') || '5678')
     const testEthereumIdentity = getBooleanOption('TEST_ETHEREUM_IDENTITY')
+    const testEthereumInteraction = getBooleanOption('TEST_ETHEREUM_INTERACTION')
     const testAttributeVerification = getBooleanOption('TEST_ATTRIBUTE_VERIFICATION')
     const testAttributeCreation = testAttributeVerification || getBooleanOption('TEST_ATTRIBUTE_CREATION')
     const phoneAttribute = getOption('TEST_CREATE_PHONE_ATTRIBUTE')
@@ -114,7 +115,7 @@ export async function devPostInit(options = {}) {
       create: true,
       userName: getOption('FIRST_USER_NAME') || 'joe',
       seedPhrase: getOption('FIRST_USER_SEED_PHRASE') || (
-        testEthereumIdentity
+        (testEthereumIdentity || testEthereumInteraction)
         ? 'mandate print cereal style toilet hole cave mom heavy fork network indoor'
         : 'user1 seed phrase'
       )
@@ -127,7 +128,7 @@ export async function devPostInit(options = {}) {
       create: createSecondUser,
       userName: getOption('SECOND_USER_NAME') || 'jane',
       seedPhrase: getOption('SECOND_USER_SEED_PHRASE') || (
-        testEthereumIdentity
+        (testEthereumIdentity || testEthereumInteraction)
         ? 'acquire coyote coyote polar unhappy piano twelve great infant creek brief today'
         : 'user2 seed phrase'
       )
@@ -360,10 +361,175 @@ export async function devPostInit(options = {}) {
       }))
     }
 
+    if (testEthereumInteraction) {
+      logStep('Uploading Ethereum lookup contract info')
+
+      const contractUrl = `${gatewayURL}/${firstUser.userName}/ethereum/contracts/identity-lookup`
+      await session_1({
+        method: 'PUT',
+        uri: contractUrl,
+        body: buildLookupContractInfo({lookupContractAddress}),
+        json: true
+      })
+
+      logStep('Creating test identity through external interaction')
+
+      await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/ethereum/execute/transaction`,
+        body: {
+          seedPhrase: firstUser.seedPhrase,
+          contractOwnerIdentity: `${gatewayURL}/${firstUser.userName}`,
+          contractID: 'identity-lookup',
+          method: 'createIdentity',
+          params: ['https://my.identity', 'my-public-key'],
+          value: 0
+        },
+        json: true
+      })
+
+      logStep('Retrieving identity info from lookup through external interaction')
+      
+      console.log('Retrieved identity address', await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/ethereum/execute/call`,
+        body: {
+          contractOwnerIdentity: `${gatewayURL}/${firstUser.userName}`,
+          contractID: 'identity-lookup',
+          method: 'getIdentityAddressByUri',
+          params: ['https://my.identity'],
+          value: 0
+        },
+        json: true
+      }))
+    }
+
     logStep('Finished')
   } catch (e) {
     console.error(e)
     console.trace()
     throw e
+  }
+}
+
+export function buildLookupContractInfo({lookupContractAddress}) {
+  return {
+    "address": lookupContractAddress,
+    "abi": [
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "_uri",
+            "type": "string"
+          }
+        ],
+        "name": "getIdentityAddressByUri",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "kill",
+        "outputs": [],
+        "payable": false,
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_newAddress",
+            "type": "address"
+          }
+        ],
+        "name": "changeIdentityCreator",
+        "outputs": [],
+        "payable": false,
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "_walletAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getIdentityAddressByWallet",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_uri",
+            "type": "string"
+          },
+          {
+            "name": "_publicKey",
+            "type": "string"
+          }
+        ],
+        "name": "createIdentity",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "createIdentityCreator",
+        "outputs": [],
+        "payable": false,
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "payable": false,
+        "type": "constructor"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "name": "sender",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "name": "eventType",
+            "type": "uint8"
+          },
+          {
+            "indexed": false,
+            "name": "notificationMsg",
+            "type": "string"
+          }
+        ],
+        "name": "EventNotification",
+        "type": "event"
+      }
+    ]
   }
 }
