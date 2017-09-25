@@ -199,7 +199,19 @@ export async function main(config = null) : Promise<any> {
     }
 
     const etherBalanceWatcher = new EtherBalanceWatcher({walletManager})
-    const ethereumInteraction = new EthereumInteraction({walletManager})
+    const ethereumInteraction = new EthereumInteraction({
+      walletManager,
+      contractInfoRetriever: async ({contractOwnerIdentity, contractID}) => {
+        const cookieJar = request.jar()
+        const req = request.defaults({jar: cookieJar})
+        const res = await req({
+          method: 'GET',
+          uri: `${contractOwnerIdentity}/ethereum/contracts/${contractID}`,
+          json: true
+        })
+        return res
+      }
+    })
     const ethereumIdentityCreator = new EthereumIdentityCreator({walletManager, identityStore})
     const getEthereumAccountByUserId = async (userId : string) => {
       const linkedIdentities = await identityStore.getLinkedIdentities({userId})
@@ -286,7 +298,9 @@ export async function main(config = null) : Promise<any> {
     })
 
     if (DEVELOPMENT_MODE) {
-      await devPostInit()
+      await devPostInit({}, {
+        lookupContractAddress: walletManager._config.lookupContractAddress
+      })
     }
 
     return server

@@ -4,7 +4,7 @@ var fs        = require('fs');
 var path      = require('path');
 var Sequelize = require('sequelize');
 var basename  = path.basename(module.filename);
-var env       = process.env.NODE_ENV || 'development';
+var env       = process.env.NODE_ENV || 'production';
 var db        = {};
 
 function create(config) {
@@ -16,9 +16,7 @@ function create(config) {
       logging: process.env.LOG_SQL === 'true'
     });
   } else {
-    var sequelize = new Sequelize(config.databaseUrl || config, {
-      logging: process.env.LOG_SQL === 'true'
-    });
+    var sequelize = new Sequelize(Object.assign({}, {logging: process.env.LOG_SQL === 'true'}, config));
   }
 
   fs
