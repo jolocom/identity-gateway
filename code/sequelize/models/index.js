@@ -16,7 +16,11 @@ function create(config) {
       logging: process.env.LOG_SQL === 'true'
     });
   } else {
-    var sequelize = new Sequelize(Object.assign({}, {logging: process.env.LOG_SQL === 'true'}, config));
+    var args = [config]
+    if (config.databaseUrl) {
+      args.unshift(config.databaseUrl)
+    }
+    var sequelize = new Sequelize(...args)
   }
 
   fs
