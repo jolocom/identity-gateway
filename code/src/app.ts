@@ -199,7 +199,7 @@ const app = express()
     '/access': {
       get: async (req, res) => {
         let rules = await accessRights.list({
-          userID: req.user.id
+          userID: req.ownerUserID
         })
         res.json(rules)
       }
@@ -211,13 +211,13 @@ const app = express()
     // },
     '/identity/:attribute': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         res.json(await attributeStore.listAttributes({
           userId, type: req.params.attribute
         }))
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         const isString = typeof req.body === 'string'
         const params = {
           userId, type: req.params.attribute, id: uuid(),
@@ -233,7 +233,7 @@ const app = express()
     },
     '/identity/:attribute/:id': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         const attribute = (await attributeStore.retrieveAttribute({
           userId, type: req.params.attribute, id: req.params.id
         }))
@@ -247,7 +247,7 @@ const app = express()
         }
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         const isString = typeof req.body === 'string'
         const params = {
           userId, type: req.params.attribute, id: req.params.id,
@@ -261,7 +261,7 @@ const app = express()
         res.send('OK')
       },
       delete: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         await attributeStore.deleteAttribute({
           userId, type: req.params.attribute, id: req.params.id
         })
@@ -270,13 +270,13 @@ const app = express()
     },
     '/identity/:attribute/:id/verifications': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         res.json(await verificationStore.getVerifications({
           userId, attrType: req.params.attribute, attrId: req.params.id
         }))
       },
       put: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         const verificationId = await verificationStore.storeVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verifierIdentity: req.user.identity,
@@ -288,7 +288,7 @@ const app = express()
     },
     '/identity/:attribute/:id/verifications/:id': {
       get: async (req, res) => {
-        const userId = await identityStore.getUserIdByUserName(req.user.userName)
+        const userId = req.ownerUserID
         res.json(await verificationStore.getVerification({
           userId, attrType: req.params.attribute, attrId: req.params.id,
           verificationId: req.params.id
@@ -333,17 +333,17 @@ const app = express()
     },
     '/ethereum': {
       get: async (req, res) => {
-        res.json(await getEthereumAccountByUserId(req.user.id))
+        res.json(await getEthereumAccountByUserId(req.ownerUserID))
       }
     },
     '/ethereum/wallet-address': {
       get: async (req, res) => {
-        res.send((await getEthereumAccountByUserId(req.user.id)).walletAddress)
+        res.send((await getEthereumAccountByUserId(req.ownerUserID)).walletAddress)
       }
     },
     '/ethereum/identity-address': {
       get: async (req, res) => {
-        res.send((await getEthereumAccountByUserId(req.user.id)).identityAddress)
+        res.send((await getEthereumAccountByUserId(req.ownerUserID)).identityAddress)
       }
     },
     '/ethereum/get-balance': {
@@ -375,7 +375,7 @@ const app = express()
       if (!user) {
         return res.json({success: false})
       }
-      
+
       req.logIn(user, function(err) {
         if (err) {
           return next(err)
@@ -384,11 +384,11 @@ const app = express()
       });
     })(req, res, next);
   });
-  
+
   _.each(protectedRoutes, (methods, path) => {
     // path = path.replace('/:userName', '(?:/([A-Za-z0-9\-]+))?')
     path = '/:userName?' + path
-    
+
     _.each(methods, (route, method) => {
       route = route.handler ? route : {handler: route}
 
