@@ -417,6 +417,18 @@ const app = express()
         })
       }
     },
+    '/ethereum/deploy-contract': {
+      post: async (req, res) => {
+        res.json(
+          await ethereumInteraction.deployContract({
+            seedPhrase: req.body.seedPhrase,
+            abi: req.body.abi,
+            unlinkedBinary: req.body.unlinkedBinary,
+            constructorArgs: req.body.constructorArgs
+          })
+        )
+      }
+    },
   }
 
   app.post('/login', function(req, res, next) {

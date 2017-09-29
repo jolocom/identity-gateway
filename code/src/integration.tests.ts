@@ -1,4 +1,6 @@
 import * as URL from 'url-parse'
+import * as fs from 'fs'
+import * as path from 'path'
 import { expect } from 'chai';
 import * as _ from 'lodash'
 import * as request from 'request-promise-native'
@@ -362,6 +364,27 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
     }
 
     if (testEthereumInteraction) {
+      logStep('Deploying dummy Ethereum lookup contract')
+
+      const artifact = JSON.parse(fs.readFileSync(path.join(
+        __dirname, '..', 'node_modules',
+        'smartwallet-contracts', 'build', 'contracts',
+        'IdentityLookup.json'
+      )).toString())
+
+      const deploymentResult = await session_1({
+        method: 'POST',
+        uri: `${gatewayURL}/${firstUser.userName}/ethereum/deploy-contract`,
+        body: {
+          seedPhrase: firstUser.seedPhrase,
+          abi: artifact.abi,
+          unlinkedBinary: artifact.unlinked_binary
+        },
+        json: true
+      })
+      console.log(deploymentResult)
+      expect(deploymentResult.address.substr(0, 2)).to.equal('0x')
+
       logStep('Uploading Ethereum lookup contract info')
 
       const contractUrl = `${gatewayURL}/${firstUser.userName}/ethereum/contracts/identity-lookup`

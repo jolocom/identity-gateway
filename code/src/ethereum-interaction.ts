@@ -50,4 +50,14 @@ export class EthereumInteraction {
       txHash: await wallet.executeTransaction({abi, address, method, value, params, pin: '1111'})
     }
   }
+
+  async deployContract({seedPhrase, abi, unlinkedBinary, constructorArgs}) {
+    const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
+    const address = await wallet.lightWallet.createContract({
+      contractInfo: {abi, unlinked_binary: unlinkedBinary},
+      args: constructorArgs || [],
+      pin: '1111',
+    })
+    return {address}
+  }
 }
