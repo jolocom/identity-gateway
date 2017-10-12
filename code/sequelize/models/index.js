@@ -20,6 +20,7 @@ function create(config) {
     if (config.databaseUrl) {
       args.unshift(config.databaseUrl)
     }
+    config.logging = process.env.LOG_SQL === 'true'
     var sequelize = new Sequelize(...args)
   }
 
