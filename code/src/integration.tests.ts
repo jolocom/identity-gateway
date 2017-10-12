@@ -111,6 +111,8 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
     const testEthereumIdentity = getBooleanOption('TEST_ETHEREUM_IDENTITY')
     const testEthereumInteraction = getBooleanOption('TEST_ETHEREUM_INTERACTION')
     const testAttributeVerification = getBooleanOption('TEST_ATTRIBUTE_VERIFICATION')
+    //store metadata verification (store another verification on email attribute)
+     //not every metadata will have metadata (email default test)
     const testAttributeCreation = testAttributeVerification || getBooleanOption('TEST_ATTRIBUTE_CREATION')
     const phoneAttribute = getOption('TEST_CREATE_PHONE_ATTRIBUTE')
     const firstUser = {
@@ -170,6 +172,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
           method: 'GET',
           uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
         })
+        //expect false 
       } catch(e) {
         expect(e.statusCode).to.equal(404)
       }
@@ -361,6 +364,10 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
           attributeValue: JSON.stringify({value: 'vincent@shishkabab.net'})
         }
       }))
+      
+      //logStep
+      //storing verification with metadata
+      //checking verification with metadata
     }
 
     if (testEthereumInteraction) {

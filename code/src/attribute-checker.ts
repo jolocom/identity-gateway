@@ -39,30 +39,25 @@ export class AttributeChecker {
     })
 
     const publicKeysAndVerifications = await Promise.all(verifications.map(async verification => {
-      const verifierIdentity = verification.verifierIdentity
+      const verifierIdentityURL = verification.verifierIdentity
 
       let publicKey
       if (verification.linkedIdentities.ethereum) {
         publicKey = await this._publicKeyRetrievers.ethereum(
-          verifierIdentity, verification.linkedIdentities.ethereum
+          verifierIdentityURL, verification.linkedIdentities.ethereum
         )
       } else {
-        publicKey = await this._publicKeyRetrievers.url(verifierIdentity)
+        publicKey = await this._publicKeyRetrievers.url(verifierIdentityURL)
       }
-
-      return {publicKey, verification, verifierIdentityURL: verifierIdentity}
-    }))
-
-    let serialized
-    try {
-      serialized = stringify(JSON.parse(attrValue))
-    } catch(e) {
-      serialized = attrValue
-    }
-    
-    return await Promise.all(publicKeysAndVerifications.map(async ({
-      publicKey, verification, verifierIdentityURL
-    }) => {
+      
+      let serialized
+      try {
+        serialized = stringify(JSON.parse(attrValue))
+        //attribute merged with metadata
+      } catch(e) {
+        serialized = attrValue
+      }
+      
       return {
         verificationId: verification.id,
         verifier: verifierIdentityURL,
