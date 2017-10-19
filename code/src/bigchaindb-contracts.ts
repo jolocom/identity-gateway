@@ -1,19 +1,37 @@
 import { DataSigner } from './data-signer'
 
 export interface SecurityClaim {
-  
+  identity : string
+	level : number
+	trustedVerifier : boolean
+}
+
+export interface MethodMap {
+  [methodName : string] : {description : string}
 }
 
 export interface FunctionalityObject {
-
+  description : string
+	methods : MethodMap
 }
 
 export interface Functionality extends FunctionalityObject {
+  verifications : Array<{identity, trustedVerifier : boolean}>
+}
 
+export interface SecurityClaimMap {
+  [identity : string] : SecurityClaim
 }
 
 export interface ContractCheckResult {
+  currentSecurity : SecurityClaimMap
+	lowestSecurityLevel : SecurityClaim
+	highestSecurityLevel : SecurityClaim
 
+	functionality : Functionality
+	functionalityHistory? : Array<{
+    timestamp : number, current : boolean, functionality: Functionality
+  }>
 }
 
 export class BigChainInteractions {
