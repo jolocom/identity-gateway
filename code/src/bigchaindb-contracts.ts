@@ -35,6 +35,9 @@ export interface ContractCheckResult {
   }>
 }
 
+export class ContractOwnershipError extends Error {
+}
+
 export class BigChainInteractions {
   constructor({walletManager, dataSigner} : {walletManager, dataSigner : DataSigner}) {
 
@@ -87,17 +90,26 @@ export class BigChainInteractions {
     {identityURL, contractName, retrieveHistory} :
     {identityURL : string, contractName : string, retrieveHistory? : boolean}
   ) : Promise<ContractCheckResult | null> {
-    // Retrieve Jolocom + Ethereum public key of identityURL
-    // Retrieve contract address from identity gateway
+    const publicKeys = await this._retrievePublicKeys({identityURL})
+    const contractAddress = await this._retrieveContractAddress({identityURL, contractName})
+    const contractHash = await this._retrieveContractHash({contractAddress})
+    const contractInfo = await this._retrieveContractInfo({
+      identityURL, contractName, contractAddress,
+      contractHash: retrieveHistory ? contractHash : null
+    })
 
-    // Retrieve contract and calculate hash
-    // If retrieveHistory === false, query also for contract state hash
+    if (!contractInfo) {
+      return null
+    }
 
-    // Retrieve everything about contract from BDB
-    // Return null if no information stored on BDB
-    // Check ownership claim validity, throw Error if not valid
-
-    // Construct result object
+    const isOwnershipValid = await this._checkOwnershipValidity({publicKeys})
+    if (!isOwnershipValid) {
+      throw new ContractOwnershipError("Could not verify contract ownership")
+    }
+    
+    return await this._buildContractCheckResult({
+      publicKeys, contractInfo, contractHash
+    })
   }
 
   private conn
