@@ -40,15 +40,15 @@ export class BigChainInteractions {
   }
 
   createOwnershipClaim(
-    {seedPhrase, identityURL, contractName} : 
+    {seedPhrase, identityURL, contractName} :
     {seedPhrase : string, identityURL : string, contractName : string}
   ) {
 
   }
-  
+
   createFunctionalityObject({
     seedPhrase, identityURL, contractName,
-    sourceIdentityURL, dataSigner,
+    dataSigner,
     object
   } : {
     seedPhrase : string, identityURL : string, contractName : string,
@@ -57,7 +57,7 @@ export class BigChainInteractions {
   }) {
 
   }
-  
+
   createFunctionalityClaim({
     seedPhrase, identityURL, sourceIdentityURL,
     dataSigner, contractName
@@ -67,7 +67,7 @@ export class BigChainInteractions {
   }) {
 
   }
-  
+
   createSecurityClaim({
     seedPhrase, identityURL, contractName,
     sourceIdentityURL, dataSigner,
@@ -84,6 +84,6 @@ export class BigChainInteractions {
     {identityURL, contractName, retrieveHistory} :
     {identityURL : string, contractName : string, retrieveHistory? : boolean}
   ) : ContractCheckResult | null {
-    
+
   }
 }
