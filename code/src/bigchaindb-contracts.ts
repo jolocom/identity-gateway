@@ -148,7 +148,7 @@ export class BigChainInteractions {
     level : number
   }) {
     const assetdata = identityURL + contractName + 'security'
-    const metadata =
+    const metadata = {}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -206,7 +206,7 @@ export class BigChainInteractions {
       queryString += contractHash
 
     this.conn.searchAssets(queryString)
-        .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets))
+        .then(assets => console.log('asset: ', assets))
 
 
     return {
@@ -227,7 +227,7 @@ export class BigChainInteractions {
       queryString += contractHash
 
     this.conn.searchAssets(queryString)
-        .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets))
+        .then(assets => console.log('asset: ', assets))
 
   }
 
