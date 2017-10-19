@@ -1,3 +1,4 @@
+import * as _ from 'lodash'
 import { DataSigner } from './data-signer'
 import * as driver from 'bigchaindb-driver'
 
@@ -45,7 +46,6 @@ interface BigChainOwnershipClaim {
   ethereumPublicKeySignature : string
   jolocomPublicKeySignature : string
   contractAddress : string
-
 }
 
 interface BigChainFunctionalityObject {
@@ -78,9 +78,28 @@ interface BigChainContractInfo {
   securityClaims : BigChainSecurityClaim[]
 }
 
-export class BigChainInteractions {
-  constructor({walletManager, dataSigner} : {walletManager, dataSigner : DataSigner}) {
+type PublicKeyRetrievers = {[type : string] : (identityURL) => Promise<string>}
+type SignatureCheckers = {[type : string] : (
+  {publicKey, signature, message} :
+  {publicKey : string, signature : string, message? : string}
+) => Promise<boolean>}
 
+export class BigChainInteractions {
+  private _walletManager
+  private _dataSigner : DataSigner
+  private _publicKeyRetrievers : PublicKeyRetrievers
+  private _signatureCheckers : SignatureCheckers
+
+  constructor(
+    {walletManager, dataSigner, publicKeyRetrievers, signatureCheckers} :
+    {walletManager, dataSigner : DataSigner,
+     publicKeyRetrievers : PublicKeyRetrievers,
+     signatureCheckers : SignatureCheckers}
+  ) {
+    this._walletManager = walletManager
+    this._dataSigner = dataSigner
+    this._publicKeyRetrievers = publicKeyRetrievers
+    this._signatureCheckers = signatureCheckers
   }
 
   createOwnershipClaim(
@@ -138,7 +157,7 @@ export class BigChainInteractions {
       return null
     }
 
-    const isOwnershipValid = await this._checkOwnershipValidity({publicKeys})
+    const isOwnershipValid = await this._checkOwnershipValidity({contractInfo, publicKeys})
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
     }
@@ -148,6 +167,34 @@ export class BigChainInteractions {
     })
   }
 
+  async _retrievePublicKeys({identityURL}) {
+    return {
+      jolocom: await this._publicKeyRetrievers.jolocom(identityURL),
+      ethereum: await this._publicKeyRetrievers.ethereum(identityURL),
+      bigChain: await this._publicKeyRetrievers.bigChain(identityURL),
+    }
+  }
+
+  async _checkOwnershipValidity(
+    {contractInfo, publicKeys} : 
+    {contractInfo : BigChainContractInfo, publicKeys}
+  ) {
+    const toCheck = [
+      {type: 'jolocom', signature: contractInfo.ownershipClaim.identityURLSignature},
+      {type: 'jolocom', signature: contractInfo.ownershipClaim.jolocomPublicKeySignature},
+      {type: 'ethereum', signature: contractInfo.ownershipClaim.ethereumPublicKeySignature},
+      {type: 'bigChain', signature: contractInfo.ownershipClaim.bigChainPublicKeySignature},
+    ]
+    const checked = Promise.all(toCheck.map(check => {
+      return this._signatureCheckers[check.type]({
+        publicKey: publicKeys[check.type],
+        signature: check.signature,
+        // message: check.message
+      })
+    }))
+    return _.every(checked)
+  }
+  
   async _buildContractCheckResult(
     {publicKeys, contractInfo, contractHash} :
     {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
