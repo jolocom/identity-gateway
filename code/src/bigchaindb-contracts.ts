@@ -131,7 +131,7 @@ export class BigChainInteractions {
     const contractHash = await this._retrieveContractHash({contractAddress})
     const contractInfo = await this._retrieveContractInfo({
       identityURL, contractName, contractAddress,
-      contractHash: retrieveHistory ? contractHash : null
+      contractHash: !retrieveHistory ? contractHash : null
     })
 
     if (!contractInfo) {
@@ -150,10 +150,8 @@ export class BigChainInteractions {
 
   async _buildContractCheckResult(
     {publicKeys, contractInfo, contractHash} :
-    {publicKeys, contractInfo, contractHash : string}
+    {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
   ) : Promise<ContractCheckResult> {
-
-
     return {
       currentSecurity,
       lowestSecurityLevel,
