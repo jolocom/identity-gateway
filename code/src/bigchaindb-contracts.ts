@@ -35,7 +35,7 @@ export interface ContractCheckResult {
 }
 
 export class BigChainInteractions {
-  constructor({walletManager}) {
+  constructor({walletManager, dataSigner} : {walletManager, dataSigner : DataSigner}) {
 
   }
 
@@ -48,11 +48,9 @@ export class BigChainInteractions {
   
   createFunctionalityObject({
     seedPhrase, identityURL, contractName,
-    sourceIdentityURL, dataSigner,
     object
   } : {
     seedPhrase : string, identityURL : string, contractName : string,
-    sourceIdentityURL : string, dataSigner : DataSigner,
     object : FunctionalityObject
   }) {
 
@@ -60,30 +58,40 @@ export class BigChainInteractions {
   
   createFunctionalityClaim({
     seedPhrase, identityURL, sourceIdentityURL,
-    dataSigner, contractName
+    contractName
   } : {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
-    dataSigner : DataSigner, contractName : string
+    contractName : string
   }) {
 
   }
   
   createSecurityClaim({
     seedPhrase, identityURL, contractName,
-    sourceIdentityURL, dataSigner,
+    sourceIdentityURL,
     level
   } : {
     seedPhrase : string, identityURL : string, contractName : string,
-    sourceIdentityURL : string, dataSigner : DataSigner,
+    sourceIdentityURL : string,
     level : number
   }) {
 
   }
 
-  checkContract(
+  async checkContract(
     {identityURL, contractName, retrieveHistory} :
     {identityURL : string, contractName : string, retrieveHistory? : boolean}
-  ) : ContractCheckResult | null {
-    
+  ) : Promise<ContractCheckResult | null> {
+    // Retrieve Jolocom + Ethereum public key of identityURL
+    // Retrieve contract address from identity gateway
+
+    // Retrieve contract and calculate hash
+    // If retrieveHistory === false, query also for contract state hash
+
+    // Retrieve everything about contract from BDB
+    // Return null if no information stored on BDB
+    // Check ownership claim validity, throw Error if not valid
+
+    // Construct result object   
   }
 }
