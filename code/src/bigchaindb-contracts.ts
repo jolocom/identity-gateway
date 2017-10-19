@@ -164,6 +164,8 @@ export class BigChainInteractions {
       contractHash: !retrieveHistory ? contractHash : null
     })
 
+
+
     if (!contractInfo) {
       return null
     }
@@ -178,10 +180,35 @@ export class BigChainInteractions {
     })
   }
 
+  async _retrievePublicKeys(){
+
+  }
+  async _retrieveContractAddress(){
+
+  }
+  async _retrieveContractHash(){
+
+  }
+  async _retrieveContractInfo(){
+
+  }
+  async _checkOwnershipValidity(){
+
+  }
+
   async _buildContractCheckResult(
     {publicKeys, contractInfo, contractHash} :
     {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
   ) : Promise<ContractCheckResult> {
+
+    const queryString = contractInfo
+    if(contractHash):
+      queryString += contractHash
+
+    this.conn.searchAssets(queryString)
+        .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets))
+
+
     return {
       currentSecurity,
       lowestSecurityLevel,
@@ -195,7 +222,11 @@ export class BigChainInteractions {
     {contractName, contractHash} :
     {publicKeys, contractName, contractHash : string}
   ){
-    this.conn.searchAssets(contractInfo)
+    const queryString = contractName
+    if(contractHash):
+      queryString += contractHash
+
+    this.conn.searchAssets(queryString)
         .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets))
 
   }
