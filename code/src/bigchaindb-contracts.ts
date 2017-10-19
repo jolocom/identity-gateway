@@ -39,29 +39,43 @@ export class ContractOwnershipError extends Error {
 }
 
 interface BigChainOwnershipClaim {
-  identityURL : string
+  assetData : string
+  identityURLSignature : string // PGP signed cleartext identity URL
   bigChainPublicKeySignature : string
   ethereumPublicKeySignature : string
   jolocomPublicKeySignature : string
+  contractAddress : string
+
 }
 
 interface BigChainFunctionalityObject {
-
+  assetData : string
+  identityURLSignature : string // PGP signed cleartext identity URL
+  ownershipClaimPointer : string
+  object : FunctionalityObject
 }
 
 interface BigChainFunctionalityClaim {
-
+  assetData : string
+  identityURLSignature : string // PGP signed cleartext identity URL
+  ownershipClaimPointer : string
+  functionalityObjectPointer : string
+  contractHash : string
 }
 
 interface BigChainSecurityClaim {
-
+  assetData : string
+  identityURLSignature : string // PGP signed cleartext identity URL
+  ownershipClaimPointer : string
+  contractHash : string
+  level : number
 }
 
 interface BigChainContractInfo {
   ownershipClaim : BigChainOwnershipClaim
-  functionalityObject : BigChainFunctionalityObject
-  functionalityClaims : BigChainFunctionalityClaim
-  securityClaims : BigChainSecurityClaim
+  functionalityObjects : BigChainFunctionalityObject[]
+  functionalityClaims : BigChainFunctionalityClaim[]
+  securityClaims : BigChainSecurityClaim[]
 }
 
 export class BigChainInteractions {
