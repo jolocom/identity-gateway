@@ -1,4 +1,5 @@
 import { DataSigner } from './data-signer'
+import * as driver from 'bigchaindb-driver'
 
 export interface SecurityClaim {
   identity : string
@@ -40,12 +41,12 @@ export class BigChainInteractions {
   }
 
   createOwnershipClaim(
-    {seedPhrase, identityURL, contractName} : 
+    {seedPhrase, identityURL, contractName} :
     {seedPhrase : string, identityURL : string, contractName : string}
   ) {
 
   }
-  
+
   createFunctionalityObject({
     seedPhrase, identityURL, contractName,
     sourceIdentityURL, dataSigner,
@@ -57,7 +58,7 @@ export class BigChainInteractions {
   }) {
 
   }
-  
+
   createFunctionalityClaim({
     seedPhrase, identityURL, sourceIdentityURL,
     dataSigner, contractName
@@ -67,7 +68,7 @@ export class BigChainInteractions {
   }) {
 
   }
-  
+
   createSecurityClaim({
     seedPhrase, identityURL, contractName,
     sourceIdentityURL, dataSigner,
@@ -84,6 +85,13 @@ export class BigChainInteractions {
     {identityURL, contractName, retrieveHistory} :
     {identityURL : string, contractName : string, retrieveHistory? : boolean}
   ) : ContractCheckResult | null {
-    
+
+  }
+
+  private conn
+  async _getConnection() {
+    if (!this.conn) {
+      this.conn = new driver.Connection('http://ec2-35-157-164-199.eu-central-1.compute.amazonaws.com:49994')
+    }
   }
 }
