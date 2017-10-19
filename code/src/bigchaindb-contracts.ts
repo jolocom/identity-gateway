@@ -83,11 +83,36 @@ export class BigChainInteractions {
 
   }
 
+  createBDBTransaction(
+    {seedPhrase, assetdata, metadata}:{ seedPhrase:string, assetdata : string, metadata: }
+  ){
+
+    const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
+    const tx = driver.Transaction.makeCreateTransaction(
+        assetdata,
+        metadata,
+        [
+            driver.Transaction.makeOutput(
+                driver.Transaction.makeEd25519Condition(keypair.publicKey))
+        ],
+        publicKey
+    )
+    // sign/fulfill the transaction
+    const txSigned = driver.Transaction.signTransaction(tx, keypair.privateKey)
+
+    // send it off to BigchainDB
+    return this.conn.postTransaction(txSigned)
+        .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
+        .then(() => txSigned)
+  }
+
   createOwnershipClaim(
     {seedPhrase, identityURL, contractName} :
     {seedPhrase : string, identityURL : string, contractName : string}
   ) {
-
+    const assetdata = identityURL + contractName + 'ownership'
+    const metadata =
+    createBDBTransaction(seedPhrase, assetdata, metadata)
   }
 
   createFunctionalityObject({
@@ -107,7 +132,9 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractName : string
   }) {
-
+    const assetdata = identityURL + contractName + 'functionality'
+    const metadata =
+    createBDBTransaction(seedPhrase, assetdata, metadata)
   }
 
   createSecurityClaim({
@@ -119,7 +146,9 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-
+    const assetdata = identityURL + contractName + 'security'
+    const metadata =
+    createBDBTransaction(seedPhrase, assetdata, metadata)
   }
 
   async checkContract(
@@ -142,7 +171,7 @@ export class BigChainInteractions {
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
     }
-    
+
     return await this._buildContractCheckResult({
       publicKeys, contractInfo, contractHash
     })
@@ -159,6 +188,15 @@ export class BigChainInteractions {
       functionality,
       functionalityHistory
     }
+  }
+
+  queryBigchainDB(
+    {contractName, contractHash} :
+    {publicKeys, contractName, contractHash : string}
+  ){
+    this.conn.searchAssets(contractInfo)
+        .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets))
+
   }
 
   private conn
