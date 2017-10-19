@@ -1,6 +1,7 @@
 import * as _ from 'lodash'
 import { DataSigner } from './data-signer'
 import * as driver from 'bigchaindb-driver'
+import bip39 from 'bip39'
 
 export interface SecurityClaim {
   identity : string
@@ -102,11 +103,36 @@ export class BigChainInteractions {
     this._signatureCheckers = signatureCheckers
   }
 
+  createBDBTransaction(
+    {seedPhrase, assetdata, metadata}:{ seedPhrase: string, assetdata: any, metadata: any}
+  ){
+
+    const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
+    const tx = driver.Transaction.makeCreateTransaction(
+        assetdata,
+        metadata,
+        [
+            driver.Transaction.makeOutput(
+                driver.Transaction.makeEd25519Condition(keypair.publicKey))
+        ],
+        keypair.publicKey
+    )
+    // sign/fulfill the transaction
+    const txSigned = driver.Transaction.signTransaction(tx, keypair.privateKey)
+
+    // send it off to BigchainDB
+    return this.conn.postTransaction(txSigned)
+        .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
+        .then(() => txSigned)
+  }
+
   createOwnershipClaim(
     {seedPhrase, identityURL, contractName} :
     {seedPhrase : string, identityURL : string, contractName : string}
   ) {
-
+    const assetdata = identityURL + contractName + 'ownership'
+    const metadata = {}
+    this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   createFunctionalityObject({
@@ -126,7 +152,9 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractName : string
   }) {
-
+    const assetdata = identityURL + contractName + 'functionality'
+    const metadata = {}
+    this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   createSecurityClaim({
@@ -138,7 +166,9 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-
+    const assetdata = identityURL + contractName + 'security'
+    const metadata = {}
+    this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   async checkContract(
@@ -153,6 +183,8 @@ export class BigChainInteractions {
       contractHash: !retrieveHistory ? contractHash : null
     })
 
+
+
     if (!contractInfo) {
       return null
     }
@@ -161,7 +193,7 @@ export class BigChainInteractions {
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
     }
-    
+
     return await this._buildContractCheckResult({
       publicKeys, contractInfo, contractHash
     })
@@ -195,10 +227,32 @@ export class BigChainInteractions {
     return _.every(checked)
   }
   
+  async _retrieveContractAddress(){
+
+  }
+  async _retrieveContractHash(){
+
+  }
+  async _retrieveContractInfo(){
+
+  }
+  async _checkOwnershipValidity(){
+
+  }
+
   async _buildContractCheckResult(
     {publicKeys, contractInfo, contractHash} :
     {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
   ) : Promise<ContractCheckResult> {
+
+    const queryString = contractInfo
+    if(contractHash):
+      queryString += contractHash
+
+    this.conn.searchAssets(queryString)
+        .then(assets => console.log('asset: ', assets))
+
+
     return {
       currentSecurity,
       lowestSecurityLevel,
@@ -206,6 +260,19 @@ export class BigChainInteractions {
       functionality,
       functionalityHistory
     }
+  }
+
+  queryBigchainDB(
+    {contractName, contractHash} :
+    {publicKeys, contractName, contractHash : string}
+  ){
+    const queryString = contractName
+    if(contractHash):
+      queryString += contractHash
+
+    this.conn.searchAssets(queryString)
+        .then(assets => console.log('asset: ', assets))
+
   }
 
   private conn
