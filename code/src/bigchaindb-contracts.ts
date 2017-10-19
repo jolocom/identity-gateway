@@ -38,6 +38,32 @@ export interface ContractCheckResult {
 export class ContractOwnershipError extends Error {
 }
 
+interface BigChainOwnershipClaim {
+  identityURL : string
+  bigChainPublicKeySignature : string
+  ethereumPublicKeySignature : string
+  jolocomPublicKeySignature : string
+}
+
+interface BigChainFunctionalityObject {
+
+}
+
+interface BigChainFunctionalityClaim {
+
+}
+
+interface BigChainSecurityClaim {
+
+}
+
+interface BigChainContractInfo {
+  ownershipClaim : BigChainOwnershipClaim
+  functionalityObject : BigChainFunctionalityObject
+  functionalityClaims : BigChainFunctionalityClaim
+  securityClaims : BigChainSecurityClaim
+}
+
 export class BigChainInteractions {
   constructor({walletManager, dataSigner} : {walletManager, dataSigner : DataSigner}) {
 
@@ -52,10 +78,6 @@ export class BigChainInteractions {
 
   createFunctionalityObject({
     seedPhrase, identityURL, contractName,
-<<<<<<< HEAD
-=======
-    dataSigner,
->>>>>>> 48b6738c41049b5b6ffe0e76f493aa5fa52a0ce3
     object
   } : {
     seedPhrase : string, identityURL : string, contractName : string,
@@ -110,6 +132,21 @@ export class BigChainInteractions {
     return await this._buildContractCheckResult({
       publicKeys, contractInfo, contractHash
     })
+  }
+
+  async _buildContractCheckResult(
+    {publicKeys, contractInfo, contractHash} :
+    {publicKeys, contractInfo, contractHash : string}
+  ) : Promise<ContractCheckResult> {
+
+
+    return {
+      currentSecurity,
+      lowestSecurityLevel,
+      highestSecurityLevel,
+      functionality,
+      functionalityHistory
+    }
   }
 
   private conn
