@@ -208,7 +208,7 @@ export class BigChainInteractions {
   }
 
   async _checkOwnershipValidity(
-    {contractInfo, publicKeys} : 
+    {contractInfo, publicKeys} :
     {contractInfo : BigChainContractInfo, publicKeys}
   ) {
     const toCheck = [
@@ -226,18 +226,28 @@ export class BigChainInteractions {
     }))
     return _.every(checked)
   }
-  
-  async _retrieveContractAddress(){
+
+  async _retrieveContractAddress(temp){
 
   }
-  async _retrieveContractHash(){
-
+  async _retrieveContractHash(temp){
+    return ''
   }
-  async _retrieveContractInfo(){
-
-  }
-  async _checkOwnershipValidity(){
-
+  async _retrieveContractInfo(temp){
+    // TODO temp data
+    return {
+      ownershipClaim : {
+        assetData: '',
+        identityURLSignature: '',
+        bigChainPublicKeySignature: '',
+        ethereumPublicKeySignature: '',
+        jolocomPublicKeySignature: '',
+        contractAddress : '',
+      },
+      functionalityObjects : [],
+      functionalityClaims : [],
+      securityClaims : []
+    }
   }
 
   async _buildContractCheckResult(
@@ -245,20 +255,20 @@ export class BigChainInteractions {
     {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
   ) : Promise<ContractCheckResult> {
 
-    const queryString = contractInfo
-    if(contractHash):
+    let queryString = ''//contractInfo
+    if(contractHash)
       queryString += contractHash
 
     this.conn.searchAssets(queryString)
         .then(assets => console.log('asset: ', assets))
 
-
+    // temp comment for testing
     return {
-      currentSecurity,
-      lowestSecurityLevel,
-      highestSecurityLevel,
-      functionality,
-      functionalityHistory
+      currentSecurity:{},
+      lowestSecurityLevel:{identity:'',level:0,trustedVerifier:true},
+      highestSecurityLevel:{identity:'',level:0,trustedVerifier:true},
+      functionality:{verifications:[{identity:'',trustedVerifier:true}],description:'',methods:{['kra']:{description : 'r'}}},
+      functionalityHistory:[]
     }
   }
 
@@ -266,8 +276,8 @@ export class BigChainInteractions {
     {contractName, contractHash} :
     {publicKeys, contractName, contractHash : string}
   ){
-    const queryString = contractName
-    if(contractHash):
+    let queryString = contractName
+    if(contractHash)
       queryString += contractHash
 
     this.conn.searchAssets(queryString)
