@@ -80,6 +80,7 @@ interface BigChainContractInfo {
 }
 
 type PublicKeyRetrievers = {[type : string] : (identityURL) => Promise<string>}
+
 type SignatureCheckers = {[type : string] : (
   {publicKey, signature, message} :
   {publicKey : string, signature : string, message? : string}

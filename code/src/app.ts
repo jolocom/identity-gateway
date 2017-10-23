@@ -24,6 +24,7 @@ import { AttributeChecker } from './attribute-checker'
 // import { SessionStore } from './session-store'
 import { IdentityUrlBuilder, createCustomStrategy, setupSessionSerialization } from './passport'
 import { EthereumInteraction } from './ethereum-interaction'
+import { BigChainInteractions } from './bigchaindb-contracts'
 import { stringToBoolean } from './utils'
 
 export function createApp({accessRights, identityStore, identityUrlBuilder,
@@ -33,7 +34,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            attributeVerifier, attributeChecker,
                            publicKeyRetrievers,
                            expressSessionStore, sessionSecret,
-                           dataSigner,
+                           dataSigner, bigChainInteractions,
                            ethereumInteraction, getEthereumAccountByUserId} :
                           {accessRights : AccessRights,
                            identityStore : GatewayIdentityStore,
@@ -50,6 +51,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
                            sessionSecret : string,
                            dataSigner : DataSigner,
                            ethereumInteraction: EthereumInteraction,
+                           bigChainInteractions: BigChainInteractions,
                            getEthereumAccountByUserId : (string) => Promise<{
                              walletAddress : string,
                              identityAddress : string,
@@ -430,6 +432,65 @@ const app = express()
         )
       }
     },
+    '/bigchaindb/store/ownerhsip': {
+      post: async (req, res) => {
+        res.json(
+          await bigChainInteractions.createOwnershipClaim({
+            seedPhrase: req.body.seedPhrase,
+            identityURL: req.body.identity,
+            contractName: req.body.contractName
+          })
+        )
+      }
+    },
+    '/bigchaindb/store/functionality': {
+      post: async (req, res) => {
+        res.json(
+          await bigChainInteractions.createFunctionalityObject({
+            seedPhrase: req.body.seedPhrase,
+            identityURL: req.body.identity,
+            contractName: req.body.contractName,
+            object: req.body.object
+          })
+        )
+      }
+    },
+    '/bigchaindb/store-claim/:type': {
+      post: async (req, res) => {
+        const type = req.params.type
+        if (type === 'security') {
+          res.json(
+            await bigChainInteractions.createSecurityClaim({
+              seedPhrase: req.body.seedPhrase,
+              identityURL: req.body.identity,
+              contractName: req.body.contractName,
+              sourceIdentityURL: req.body.sourceIdentityURL,
+              level: req.body.level
+            })
+          )
+        } else if (type === 'functionality') {
+          res.json(
+            await bigChainInteractions.createFunctionalityClaim({
+              seedPhrase: req.body.seedPhrase,
+              identityURL: req.body.identity,
+              sourceIdentityURL: req.body.sourceIdentityURL,
+              contractName: req.body.contractName
+            })
+          )
+        }
+      }
+    },
+    'bigchaindb/check-contract': {
+      post: async (req, res) => {
+        res.json(
+          await bigChainInteractions.checkContract({
+            identityURL: req.body.identityURL,
+            contractName: req.body.contractName,
+            retrieveHistory: req.body.retrieveHistory
+          })
+        )
+      }
+    }
   }
 
   app.post('/login', function(req, res, next) {
