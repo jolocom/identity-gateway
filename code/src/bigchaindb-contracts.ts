@@ -42,11 +42,16 @@ export class ContractOwnershipError extends Error {
 
 interface BigChainOwnershipClaim {
   assetData : string
-  identityURLSignature : string // PGP signed cleartext identity URL
-  bigChainPublicKeySignature : string
-  ethereumPublicKeySignature : string
-  jolocomPublicKeySignature : string
   contractAddress : string
+  identityURLSignature : string // PGP signed cleartext identity URL
+
+  bigChainPublicKey : string
+  ethereumPublicKey : string
+  jolocomPublicKey : string
+  
+  bigChainSignature : string
+  ethereumSignature : string
+  jolocomSignature : string
 }
 
 interface BigChainFunctionalityObject {
@@ -183,8 +188,6 @@ export class BigChainInteractions {
       contractHash: !retrieveHistory ? contractHash : null
     })
 
-
-
     if (!contractInfo) {
       return null
     }
@@ -233,11 +236,8 @@ export class BigChainInteractions {
   async _retrieveContractHash(){
 
   }
-  async _retrieveContractInfo(){
-
-  }
-  async _checkOwnershipValidity(){
-
+  async _retrieveContractInfo({identityURL, contractName}) : Promise<BigChainContractInfo> {
+    // query for <identityURL>:<contractName>
   }
 
   async _buildContractCheckResult(
