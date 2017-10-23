@@ -27,6 +27,9 @@ export interface SecurityClaimMap {
 }
 
 export interface ContractCheckResult {
+  identityURL : string
+  contractAddress : string
+
   currentSecurity : SecurityClaimMap
 	lowestSecurityLevel : SecurityClaim
 	highestSecurityLevel : SecurityClaim
@@ -279,11 +282,31 @@ export class BigChainInteractions {
 
     // temp comment for testing
     return {
-      currentSecurity:{},
-      lowestSecurityLevel:{identity:'',level:0,trustedVerifier:true},
-      highestSecurityLevel:{identity:'',level:0,trustedVerifier:true},
-      functionality:{verifications:[{identity:'',trustedVerifier:true}],description:'',methods:{['kra']:{description : 'r'}}},
-      functionalityHistory:[]
+      identityURL: '',
+      contractAddress: '',
+      currentSecurity :{},
+      lowestSecurityLevel: {
+        identity: '',
+        level: 0,
+        trustedVerifier: true
+      },
+      highestSecurityLevel: {
+        identity: '',
+        level: 0,
+        trustedVerifier: true
+      },
+      functionality: {
+        verifications: [{
+          identity: '', trustedVerifier: true
+        }],
+        description: '',
+        methods: {
+          ['kra']: {
+            description : 'r'
+          }
+        }
+      },
+      functionalityHistory: []
     }
   }
 
