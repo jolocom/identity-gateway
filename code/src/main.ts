@@ -30,6 +30,7 @@ import Wallet from 'smartwallet-contracts/lib/wallet'
 import { createApp, createSocketIO } from './app'
 import { devPostInit } from './integration.tests'
 import * as openpgp from 'openpgp'
+import { BigChainInteractions } from './bigchaindb-contracts'
 openpgp.initWorker({ path: '../node_modules/openpgp/dist/openpgp.worker.js' })
 
 
@@ -62,7 +63,7 @@ export async function main(config = null) : Promise<any> {
     {
       await sequelize.sync()
     }
-    
+
     let privateKeySize = DEVELOPMENT_MODE ? 512 : 2048
     if (process.env.PRIV_KEY_SIZE){
       privateKeySize = parseInt(process.env.PRIV_KEY_SIZE)
@@ -239,6 +240,31 @@ export async function main(config = null) : Promise<any> {
       getEthereumAccountByUri
     })
 
+    const bigChainInteractions = new BigChainInteractions({
+      walletManager,
+      dataSigner: new DataSigner({identityStore}),
+      contractAddressRetriever: async ({identityURL, contractID}) : Promise<string> => {
+        return (await request({
+          method: 'GET',
+          uri: `${identityURL}/ethereum/contracts/${contractID}`,
+          json: true
+        })).address
+      },
+      signatureCheckers: {
+        jolocom: async ({publicKey, signature, message}) => {
+          const opts = {
+            message: new openpgp.cleartext.CleartextMessage(message),
+            publicKeys: openpgp.key.readArmored(publicKey).keys
+          }
+          if (signature) {
+            opts['signature'] = openpgp.signature.readArmored(signature)
+          }
+          return (await openpgp.verify(opts)).signatures[0].valid
+       },
+       ethereum: async (url) => false,
+       bigChain: async (url) => false
+      }
+    })
     let inviteStore = null
     if (config.firstInviteCode) {
       inviteStore = new SequelizeInviteStore({
@@ -274,6 +300,7 @@ export async function main(config = null) : Promise<any> {
       dataSigner: new DataSigner({identityStore}),
       ethereumIdentityCreator,
       ethereumInteraction,
+      bigChainInteractions,
       attributeVerifier: new AttributeVerifier({
         dataSigner: new DataSigner({identityStore}),
         attributeRetriever,
