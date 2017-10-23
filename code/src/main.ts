@@ -243,21 +243,26 @@ export async function main(config = null) : Promise<any> {
     const bigChainInteractions = new BigChainInteractions({
       walletManager,
       dataSigner: new DataSigner({identityStore}),
-      publicKeyRetrievers: {
-        jolocom: publicKeyRetrievers.url,
-        ethereum: async (url) => 'sir eugeniu todo',
-        bigChain: async (url) => 'sir eugeniu todo'
+      contractAddressRetriever: async ({identityURL, contractID}) : Promise<string> => {
+        return (await request({
+          method: 'GET',
+          uri: `${identityURL}/ethereum/contracts/${contractID}`,
+          json: true
+        })).address
       },
       signatureCheckers: {
         jolocom: async ({publicKey, signature, message}) => {
-          return (await openpgp.verify({
-           message: new openpgp.cleartext.CleartextMessage(message),
-           signature: openpgp.signature.readArmored(signature),
-           publicKeys: openpgp.key.readArmored(publicKey).keys
-         })).signatures[0].valid
+          const opts = {
+            message: new openpgp.cleartext.CleartextMessage(message),
+            publicKeys: openpgp.key.readArmored(publicKey).keys
+          }
+          if (signature) {
+            opts['signature'] = openpgp.signature.readArmored(signature)
+          }
+          return (await openpgp.verify(opts)).signatures[0].valid
        },
-       ethereum: async (url) => 'sir eugeniu todo',
-       bigChain: async (url) => 'sir eugeniu todo'
+       ethereum: async (url) => false,
+       bigChain: async (url) => false
       }
     })
     let inviteStore = null

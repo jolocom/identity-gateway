@@ -42,11 +42,16 @@ export class ContractOwnershipError extends Error {
 
 interface BigChainOwnershipClaim {
   assetData : string
-  identityURLSignature : string // PGP signed cleartext identity URL
-  bigChainPublicKeySignature : string
-  ethereumPublicKeySignature : string
-  jolocomPublicKeySignature : string
   contractAddress : string
+  identityURL : string
+
+  bigChainPublicKey : string
+  ethereumPublicKey : string
+  jolocomPublicKey : string
+  
+  bigChainSignature : string
+  ethereumSignature : string
+  jolocomSignature : string
 }
 
 interface BigChainFunctionalityObject {
@@ -80,27 +85,31 @@ interface BigChainContractInfo {
 }
 
 type PublicKeyRetrievers = {[type : string] : (identityURL) => Promise<string>}
+type ContractAddressRetriever = ({identityURL, contractID}) => Promise<string>
 
 type SignatureCheckers = {[type : string] : (
   {publicKey, signature, message} :
-  {publicKey : string, signature : string, message? : string}
+  {publicKey : string, signature? : string, message : string}
 ) => Promise<boolean>}
 
 export class BigChainInteractions {
   private _walletManager
   private _dataSigner : DataSigner
-  private _publicKeyRetrievers : PublicKeyRetrievers
+  // private _publicKeyRetrievers : PublicKeyRetrievers
+  private _contractAddressRetriever : ContractAddressRetriever
   private _signatureCheckers : SignatureCheckers
 
   constructor(
-    {walletManager, dataSigner, publicKeyRetrievers, signatureCheckers} :
+    {walletManager, dataSigner, contractAddressRetriever, signatureCheckers} :
     {walletManager, dataSigner : DataSigner,
-     publicKeyRetrievers : PublicKeyRetrievers,
+    //  publicKeyRetrievers : PublicKeyRetrievers,
+     contractAddressRetriever : ContractAddressRetriever,
      signatureCheckers : SignatureCheckers}
   ) {
     this._walletManager = walletManager
     this._dataSigner = dataSigner
-    this._publicKeyRetrievers = publicKeyRetrievers
+    // this._publicKeyRetrievers = publicKeyRetrievers
+    this._contractAddressRetriever = contractAddressRetriever
     this._signatureCheckers = signatureCheckers
   }
 
@@ -128,19 +137,19 @@ export class BigChainInteractions {
   }
 
   createOwnershipClaim(
-    {seedPhrase, identityURL, contractName} :
-    {seedPhrase : string, identityURL : string, contractName : string}
+    {seedPhrase, identityURL, contractID} :
+    {seedPhrase : string, identityURL : string, contractID : string}
   ) {
-    const assetdata = identityURL + contractName + 'ownership'
+    const assetdata = identityURL + contractID + 'ownership'
     const metadata = {}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   createFunctionalityObject({
-    seedPhrase, identityURL, contractName,
+    seedPhrase, identityURL, contractID,
     object
   } : {
-    seedPhrase : string, identityURL : string, contractName : string,
+    seedPhrase : string, identityURL : string, contractID : string,
     object : FunctionalityObject
   }) {
 
@@ -148,48 +157,46 @@ export class BigChainInteractions {
 
   createFunctionalityClaim({
     seedPhrase, identityURL, sourceIdentityURL,
-    contractName
+    contractID
   } : {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
-    contractName : string
+    contractID : string
   }) {
-    const assetdata = identityURL + contractName + 'functionality'
+    const assetdata = identityURL + contractID + 'functionality'
     const metadata = {}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   createSecurityClaim({
-    seedPhrase, identityURL, contractName,
+    seedPhrase, identityURL, contractID,
     sourceIdentityURL,
     level
   } : {
-    seedPhrase : string, identityURL : string, contractName : string,
+    seedPhrase : string, identityURL : string, contractID : string,
     sourceIdentityURL : string,
     level : number
   }) {
-    const assetdata = identityURL + contractName + 'security'
+    const assetdata = identityURL + contractID + 'security'
     const metadata = {}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   async checkContract(
-    {identityURL, contractName, retrieveHistory} :
-    {identityURL : string, contractName : string, retrieveHistory? : boolean}
+    {identityURL, contractID, retrieveHistory} :
+    {identityURL : string, contractID : string, retrieveHistory? : boolean}
   ) : Promise<ContractCheckResult | null> {
-    const publicKeys = await this._retrievePublicKeys({identityURL})
-    const contractAddress = await this._retrieveContractAddress({identityURL, contractName})
+    const contractAddress = await this._contractAddressRetriever({identityURL, contractID})
     const contractHash = await this._retrieveContractHash({contractAddress})
     const contractInfo = await this._retrieveContractInfo({
-      identityURL, contractName, contractAddress,
+      identityURL, contractID,
       contractHash: !retrieveHistory ? contractHash : null
     })
-
-
-
+    
     if (!contractInfo) {
       return null
     }
 
+    const publicKeys = await this._retrievePublicKeys({contractInfo})
     const isOwnershipValid = await this._checkOwnershipValidity({contractInfo, publicKeys})
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
@@ -200,11 +207,11 @@ export class BigChainInteractions {
     })
   }
 
-  async _retrievePublicKeys({identityURL}) {
+  async _retrievePublicKeys({contractInfo} : {contractInfo : BigChainContractInfo}) {
     return {
-      jolocom: await this._publicKeyRetrievers.jolocom(identityURL),
-      ethereum: await this._publicKeyRetrievers.ethereum(identityURL),
-      bigChain: await this._publicKeyRetrievers.bigChain(identityURL),
+      jolocom: contractInfo.ownershipClaim.jolocomPublicKey,
+      ethereum: contractInfo.ownershipClaim.ethereumPublicKey,
+      bigChain: contractInfo.ownershipClaim.bigChainPublicKey,
     }
   }
 
@@ -213,37 +220,44 @@ export class BigChainInteractions {
     {contractInfo : BigChainContractInfo, publicKeys}
   ) {
     const toCheck = [
-      {type: 'jolocom', signature: contractInfo.ownershipClaim.identityURLSignature},
-      {type: 'jolocom', signature: contractInfo.ownershipClaim.jolocomPublicKeySignature},
-      {type: 'ethereum', signature: contractInfo.ownershipClaim.ethereumPublicKeySignature},
-      {type: 'bigChain', signature: contractInfo.ownershipClaim.bigChainPublicKeySignature},
+      {type: 'jolocom', signature: contractInfo.ownershipClaim.jolocomSignature},
+      {type: 'ethereum', signature: contractInfo.ownershipClaim.ethereumSignature},
+      {type: 'bigChain', signature: contractInfo.ownershipClaim.bigChainSignature},
     ]
     const checked = Promise.all(toCheck.map(check => {
       return this._signatureCheckers[check.type]({
         publicKey: publicKeys[check.type],
         signature: check.signature,
-        // message: check.message
+        message: [
+          contractInfo.ownershipClaim.identityURL,
+          contractInfo.ownershipClaim.contractAddress,
+          publicKeys.jolocom,
+          publicKeys.ethereum,
+          publicKeys.bigChain,
+        ].join(':')
       })
     }))
     return _.every(checked)
   }
 
-  async _retrieveContractAddress(temp){
-
-  }
-  async _retrieveContractHash(temp){
+  async _retrieveContractHash({contractAddress}){
     return ''
   }
-  async _retrieveContractInfo(temp){
+  async _retrieveContractInfo({identityURL, contractID, contractHash}) : Promise<BigChainContractInfo> {
+    // query for <identityURL>:<contractID>
+
     // TODO temp data
     return {
       ownershipClaim : {
         assetData: '',
-        identityURLSignature: '',
-        bigChainPublicKeySignature: '',
-        ethereumPublicKeySignature: '',
-        jolocomPublicKeySignature: '',
         contractAddress : '',
+        identityURL: '',
+        bigChainPublicKey: '',
+        ethereumPublicKey: '',
+        jolocomPublicKey: '',
+        bigChainSignature: '',
+        ethereumSignature: '',
+        jolocomSignature: '',
       },
       functionalityObjects : [],
       functionalityClaims : [],
@@ -274,10 +288,10 @@ export class BigChainInteractions {
   }
 
   queryBigchainDB(
-    {contractName, contractHash} :
-    {publicKeys, contractName, contractHash : string}
+    {contractID, contractHash} :
+    {publicKeys, contractID, contractHash : string}
   ){
-    let queryString = contractName
+    let queryString = contractID
     if(contractHash)
       queryString += contractHash
 
