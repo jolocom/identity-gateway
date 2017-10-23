@@ -481,7 +481,7 @@ const app = express()
       }
     },
     'bigchaindb/check-contract': {
-      get: async (req, res) => {
+      post: async (req, res) => {
         res.json(
           await bigChainInteractions.checkContract({
             identityURL: req.body.identityURL,
