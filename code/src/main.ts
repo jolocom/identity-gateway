@@ -260,7 +260,6 @@ export async function main(config = null) : Promise<any> {
        bigChain: async (url) => 'sir eugeniu todo'
       }
     })
-
     let inviteStore = null
     if (config.firstInviteCode) {
       inviteStore = new SequelizeInviteStore({
