@@ -437,7 +437,7 @@ const app = express()
         res.json(
           await bigChainInteractions.createOwnershipClaim({
             seedPhrase: req.body.seedPhrase,
-            identityURL: req.body.identity,
+            identityURL: req.user.identity,
             contractName: req.body.contractName
           })
         )
@@ -448,7 +448,7 @@ const app = express()
         res.json(
           await bigChainInteractions.createFunctionalityObject({
             seedPhrase: req.body.seedPhrase,
-            identityURL: req.body.identity,
+            identityURL: req.user.identity,
             contractName: req.body.contractName,
             object: req.body.object
           })
@@ -462,9 +462,9 @@ const app = express()
           res.json(
             await bigChainInteractions.createSecurityClaim({
               seedPhrase: req.body.seedPhrase,
-              identityURL: req.body.identity,
+              identityURL: req.body.identityURL,
               contractName: req.body.contractName,
-              sourceIdentityURL: req.body.sourceIdentityURL,
+              sourceIdentityURL: req.user.identity,
               level: req.body.level
             })
           )
@@ -472,8 +472,8 @@ const app = express()
           res.json(
             await bigChainInteractions.createFunctionalityClaim({
               seedPhrase: req.body.seedPhrase,
-              identityURL: req.body.identity,
-              sourceIdentityURL: req.body.sourceIdentityURL,
+              identityURL: req.body.identityURL,
+              sourceIdentityURL: req.user.identity,
               contractName: req.body.contractName
             })
           )
@@ -481,7 +481,7 @@ const app = express()
       }
     },
     'bigchaindb/check-contract': {
-      post: async (req, res) => {
+      get: async (req, res) => {
         res.json(
           await bigChainInteractions.checkContract({
             identityURL: req.body.identityURL,
