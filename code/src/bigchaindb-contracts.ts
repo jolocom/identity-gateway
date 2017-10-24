@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 import { DataSigner } from './data-signer'
 import * as driver from 'bigchaindb-driver'
-import bip39 from 'bip39'
+import * as bip39 from 'bip39'
 
 export interface SecurityClaim {
   identity : string
@@ -51,7 +51,7 @@ interface BigChainOwnershipClaim {
   bigChainPublicKey : string
   ethereumPublicKey : string
   jolocomPublicKey : string
-  
+
   bigChainSignature : string
   ethereumSignature : string
   jolocomSignature : string
@@ -119,10 +119,11 @@ export class BigChainInteractions {
   createBDBTransaction(
     {seedPhrase, assetdata, metadata}:{ seedPhrase: string, assetdata: any, metadata: any}
   ){
+    this._getConnection()
 
     const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
     const tx = driver.Transaction.makeCreateTransaction(
-        assetdata,
+      assetdata,
         metadata,
         [
             driver.Transaction.makeOutput(
@@ -137,14 +138,15 @@ export class BigChainInteractions {
     return this.conn.postTransaction(txSigned)
         .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
         .then(() => txSigned)
+        .then(res => console.log('Transaction id: '+ txSigned.id))
   }
 
   createOwnershipClaim(
     {seedPhrase, identityURL, contractID} :
     {seedPhrase : string, identityURL : string, contractID : string}
   ) {
-    const assetdata = identityURL + contractID + 'ownership'
-    const metadata = {}
+    const assetdata = { asset : identityURL + contractID + 'ownership'}
+    const metadata = {owner:''}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -165,8 +167,8 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractID : string
   }) {
-    const assetdata = identityURL + contractID + 'functionality'
-    const metadata = {}
+    const assetdata = {asset:identityURL + contractID + 'functionality'}
+    const metadata = {funcionality:''}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -179,8 +181,8 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const assetdata = identityURL + contractID + 'security'
-    const metadata = {}
+    const assetdata = {asset:identityURL + contractID + 'security'}
+    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level}
     this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -194,7 +196,7 @@ export class BigChainInteractions {
       identityURL, contractID,
       contractHash: !retrieveHistory ? contractHash : null
     })
-    
+
     if (!contractInfo) {
       return null
     }
@@ -326,7 +328,9 @@ export class BigChainInteractions {
   private conn
   async _getConnection() {
     if (!this.conn) {
-      this.conn = new driver.Connection('http://ec2-35-157-164-199.eu-central-1.compute.amazonaws.com:49994')
+      const API_PATH = 'http://ec2-35-157-164-199.eu-central-1.compute.amazonaws.com:49994/api/v1/'
+      this.conn = new driver.Connection(API_PATH)
+
     }
   }
 }

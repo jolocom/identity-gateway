@@ -45,10 +45,28 @@ initSequelize({
     }
   })
 
+  const assetdata = {
+          'bicycle': {
+                  'serial_number': 'abcd1234',
+                  'manufacturer': 'Bicycle Inc.',
+          }
+  }
+
+  const metadata = {'planet': 'earth'}
+
+  //Create transaction
+  bdbint.createBDBTransaction({seedPhrase:'super batman secure seed string',assetdata:assetdata,metadata:metadata})
+
+  //Create ownershipClaim
+  bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'})
 
 
-  bdbint.createBDBTransaction({seedPhrase:'super batman secure seed string',assetdata:'data',metadata:'metadata'})
+  //createFunctionalityClaim
+  bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim2',sourceIdentityURL:'sourceIdentity', contractID:'contract2'})
 
+
+  //Create SecurityClaim
+  bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim3', contractID:'contract3', sourceIdentityURL:'source3', level:5})
 
 
 })
