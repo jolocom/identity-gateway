@@ -1,3 +1,4 @@
+require('regenerator-runtime/runtime')
 import { initSequelize } from './sequelize/utils'
 import * as Bdb from './bigchaindb-contracts'
 import { DataSigner } from './data-signer'
@@ -43,7 +44,6 @@ initSequelize({
      bigChain: async (url) => false
     }
   })
-
 
 
 

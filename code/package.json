@@ -10,6 +10,7 @@
     "devmon": "better-npm-run devmon",
     "prepare": "tsc",
     "prepare:watch": "tsc --watch",
+    "bdbcli": "node build/temp_cli.js",
     "typings": "typings",
     "prepare-and-test": "npm run prepare && mocha build/**/*.test.js",
     "test": "mocha build/**/*.test.js",
