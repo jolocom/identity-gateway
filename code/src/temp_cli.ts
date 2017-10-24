@@ -55,18 +55,38 @@ initSequelize({
   const metadata = {'planet': 'earth'}
 
   //Create transaction
-  bdbint.createBDBTransaction({seedPhrase:'super batman secure seed string',assetdata:assetdata,metadata:metadata})
 
-  //Create ownershipClaim
-  bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'})
+  bdbint.createBDBTransaction({seedPhrase:'super batman secure seed string',assetdata:assetdata,metadata:metadata})
+  .then((id)=> {
+    bdbint.queryBigchainDB({publicKeys : 'key1',contractID: assetdata.bicycle.serial_number, contractHash:'' })
+    .then(res => {
+      console.log('query: '+JSON.stringify(res))})
+  })
+
+  //
+  // const assetContract = {
+  //     publicKeys: '',
+  //     contractID: ''
+  //
+  // }
+  //
+  // function waitUntilCreated(){
+  //   createAsset(()=> console.log('Asset created'))
+  //   bdbint.queryBigchainDB({publicKeys : 'key1',contractID: 'id1', contractHash:'' })
+  // }
+  //
+  // waitUntilCreated()
+
+  // Create ownershipClaim
+  // bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'})
 
 
   //createFunctionalityClaim
-  bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim2',sourceIdentityURL:'sourceIdentity', contractID:'contract2'})
+  // bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim2',sourceIdentityURL:'sourceIdentity', contractID:'contract2'})
 
 
   //Create SecurityClaim
-  bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim3', contractID:'contract3', sourceIdentityURL:'source3', level:5})
+  // bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim3', contractID:'contract3', sourceIdentityURL:'source3', level:5})
 
 
 })

@@ -138,7 +138,7 @@ export class BigChainInteractions {
     return this.conn.postTransaction(txSigned)
         .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
         .then(() => txSigned)
-        .then(res => console.log('Transaction id: '+ txSigned.id))
+        // .then(res => console.log('Transaction id: '+ txSigned.id))
   }
 
   createOwnershipClaim(
@@ -275,12 +275,9 @@ export class BigChainInteractions {
     {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
   ) : Promise<ContractCheckResult> {
 
-    let queryString = ''//contractInfo
-    if(contractHash)
-      queryString += contractHash
-
-    this.conn.searchAssets(queryString)
-        .then(assets => console.log('asset: ', assets))
+    const contractAssets = this.queryBigchainDB({publicKeys : publicKeys,
+      contractID: contractInfo.ownershipClaim.identityURL + contractInfo.ownershipClaim.contractAddress,
+       contractHash:contractHash })
 
     // temp comment for testing
     return {
@@ -320,9 +317,9 @@ export class BigChainInteractions {
     if(contractHash)
       queryString += contractHash
 
-    this.conn.searchAssets(queryString)
-        .then(assets => console.log('asset: ', assets))
-
+    return this.conn.searchAssets(queryString)
+        .then( tx => {return this.conn.getTransaction(tx[0].id)})//Retrieve the hole transaction
+        .then(tx => {return tx})
   }
 
   private conn
