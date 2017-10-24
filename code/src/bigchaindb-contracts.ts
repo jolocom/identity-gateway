@@ -138,16 +138,15 @@ export class BigChainInteractions {
     return this.conn.postTransaction(txSigned)
         .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
         .then(() => txSigned)
-        .then(res => console.log('Transaction id: '+ txSigned.id))
   }
 
   createOwnershipClaim(
     {seedPhrase, identityURL, contractID} :
     {seedPhrase : string, identityURL : string, contractID : string}
   ) {
-    const assetdata = { asset : identityURL + contractID + 'ownership'}
-    const metadata = {owner:''}
-    this.createBDBTransaction({seedPhrase, assetdata, metadata})
+    const assetdata = {asset : identityURL +';'+ contractID +';'+ 'ownership'}
+    const metadata = {signature: 'TODO signed publicKeys with privateKey'}
+    return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   createFunctionalityObject({
@@ -167,9 +166,9 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractID : string
   }) {
-    const assetdata = {asset:identityURL + contractID + 'functionality'}
-    const metadata = {funcionality:''}
-    this.createBDBTransaction({seedPhrase, assetdata, metadata})
+    const assetdata = {asset:identityURL +';'+ contractID +';'+ 'functionality'}
+    const metadata = {functionality:'TODO pointer_to_contract'}
+    return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   createSecurityClaim({
@@ -181,9 +180,9 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const assetdata = {asset:identityURL + contractID + 'security'}
+    const assetdata = {asset:identityURL +';'+ contractID +';'+ 'security'}
     const metadata = {sourceIdentityURL:sourceIdentityURL,level:level}
-    this.createBDBTransaction({seedPhrase, assetdata, metadata})
+    return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   async checkContract(
