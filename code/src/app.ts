@@ -438,7 +438,7 @@ const app = express()
           await bigChainInteractions.createOwnershipClaim({
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
-            contractID: req.body.contractID
+            contractID: req.body.contractName
           })
         )
       }
@@ -449,7 +449,7 @@ const app = express()
           await bigChainInteractions.createFunctionalityObject({
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
-            contractID: req.body.contractID,
+            contractID: req.body.contractName,
             object: req.body.object
           })
         )
@@ -463,7 +463,7 @@ const app = express()
             await bigChainInteractions.createSecurityClaim({
               seedPhrase: req.body.seedPhrase,
               identityURL: req.body.identityURL,
-              contractID: req.body.contractID,
+              contractID: req.body.contractName,
               sourceIdentityURL: req.user.identity,
               level: req.body.level
             })
@@ -474,7 +474,7 @@ const app = express()
               seedPhrase: req.body.seedPhrase,
               identityURL: req.body.identityURL,
               sourceIdentityURL: req.user.identity,
-              contractID: req.body.contractID
+              contractID: req.body.contractName
             })
           )
         }
@@ -485,7 +485,7 @@ const app = express()
         res.json(
           await bigChainInteractions.checkContract({
             identityURL: req.body.identityURL,
-            contractID: req.body.contractID,
+            contractID: req.body.contractName,
             retrieveHistory: req.body.retrieveHistory
           })
         )
