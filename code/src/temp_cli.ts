@@ -58,26 +58,41 @@ initSequelize({
 
   bdbint.createBDBTransaction({seedPhrase:'super batman secure seed string',assetdata:assetdata,metadata:metadata})
   .then((id)=> {
-    bdbint.queryBigchainDB({publicKeys : 'key1',contractID: assetdata.bicycle.serial_number, contractHash:'' })
+    bdbint.queryBigchainDB({contractID: assetdata.bicycle.serial_number, contractHash:'' })
     .then(res => {
       console.log('query: '+JSON.stringify(res))})
+
+      .then(() => bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'}))
+      .then((tx) => {console.log('Ownership created' + JSON.stringify(tx.id))})
+      .then(() => bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',sourceIdentityURL:'sourceIdentity', contractID:'contract1'}))
+      .then((tx)=> { console.log('Functionality created' + JSON.stringify(tx.id)) })
+      .then(() => bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim1', contractID:'contract1', sourceIdentityURL:'source3', level:5}))
+      .then((tx) => {console.log('Security created' + JSON.stringify(tx.id))})
+
+      .then(() => bdbint._retrieveContractInfo({identityURL:'claim1', contractID:'contract1', contractHash:''}))
+      .then((tx) => {console.log('Retrieve all' + JSON.stringify(tx))})
+
   })
 
 
   // Create ownershipClaim
-  bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'})
-
-
+  // bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'}).then((tx)=>{
+  //     console.log('Ownership created' + JSON.stringify(tx))
+  // })
+  //
+  //
   //createFunctionalityClaim
-  bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim2',sourceIdentityURL:'sourceIdentity', contractID:'contract2'})
-
-
-  //Create SecurityClaim
-  bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim3', contractID:'contract3', sourceIdentityURL:'source3', level:5})
-
-  //createSecurityClaim
-  bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim3', contractID:'contract3', sourceIdentityURL:'source3', level:5}).then((tx)=>{
-    console.log(tx)
-  })
+  // bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',sourceIdentityURL:'sourceIdentity', contractID:'contract1'}).then((tx)=>{
+  //     console.log('Functionality created' + JSON.stringify(tx))
+  // })
+  //
+  //
+  // //createSecurityClaim
+  // bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim1', contractID:'contract1', sourceIdentityURL:'source3', level:5}).then((tx)=>{
+  //   console.log('Security created' + JSON.stringify(tx))
+  // })
+  //
+  //
+  // bdbint._retrieveContractInfo({identityURL:'claim1', contractID:'contract1', contractHash:''})
 
 })
