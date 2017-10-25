@@ -3,6 +3,8 @@ import { DataSigner } from './data-signer'
 import * as driver from 'bigchaindb-driver'
 import * as bip39 from 'bip39'
 
+const API_PATH = 'http://ec2-35-157-164-199.eu-central-1.compute.amazonaws.com:49994/api/v1/'
+
 export interface SecurityClaim {
   identity : string
 	level : number
@@ -327,6 +329,7 @@ export class BigChainInteractions {
     {contractID, contractHash} :
     {contractID: string, contractHash : string}
   ){
+    this._getConnection()
     let queryString = contractID
     if(contractHash)
       queryString += contractHash
@@ -337,11 +340,9 @@ export class BigChainInteractions {
   }
 
   private conn
-  async _getConnection() {
+  _getConnection() {
     if (!this.conn) {
-      const API_PATH = 'http://ec2-35-157-164-199.eu-central-1.compute.amazonaws.com:49994/api/v1/'
       this.conn = new driver.Connection(API_PATH)
-
     }
   }
 }
