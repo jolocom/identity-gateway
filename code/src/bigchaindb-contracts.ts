@@ -313,6 +313,7 @@ export class BigChainInteractions {
     {contractID, contractHash} :
     {publicKeys, contractID, contractHash : string}
   ){
+    this._getConnection()
     let queryString = contractID
     if(contractHash)
       queryString += contractHash
