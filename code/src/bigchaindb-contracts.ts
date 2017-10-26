@@ -162,7 +162,13 @@ export class BigChainInteractions {
   }) {
     const identityURLSignature = await this._dataSigner.signData({data: identityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
-    const metadata = {identityURLSignature: {identity: identityURL, signature: identityURLSignature.signature}, object:object}
+    const metadata = {
+      creator: {
+        identity: identityURL,
+        signature: identityURLSignature.signature
+      },
+      object:object
+    }
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
