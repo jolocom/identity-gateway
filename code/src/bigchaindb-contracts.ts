@@ -152,31 +152,33 @@ export class BigChainInteractions {
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
-  createFunctionalityObject({
+  async createFunctionalityObject({
     seedPhrase, identityURL, contractID,
     object
   } : {
     seedPhrase : string, identityURL : string, contractID : string,
     object : FunctionalityObject
   }) {
+    const identityURLSignature = await this._dataSigner.signData({data: identityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
-    const metadata = {signature: 'TODO signed publicKeys with privateKey', object:object}
+    const metadata = {signature: identityURLSignature, object:object}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
-  createFunctionalityClaim({
+  async createFunctionalityClaim({
     seedPhrase, identityURL, sourceIdentityURL,
     contractID
   } : {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractID : string
   }) {
+    const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionality'}
-    const metadata = {functionality:'TODO pointer_to_contract'}
+    const metadata = {functionality:'TODO pointer_to_contract', signature: sourceIdentityURLSignature}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
-  createSecurityClaim({
+  async createSecurityClaim({
     seedPhrase, identityURL, contractID,
     sourceIdentityURL,
     level
@@ -185,8 +187,9 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
+    const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'security'}
-    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level}
+    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, signature: sourceIdentityURLSignature}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
