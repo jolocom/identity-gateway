@@ -126,12 +126,12 @@ export class BigChainInteractions {
     const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
     const tx = driver.Transaction.makeCreateTransaction(
       assetdata,
-        metadata,
-        [
-            driver.Transaction.makeOutput(
-                driver.Transaction.makeEd25519Condition(keypair.publicKey))
-        ],
-        keypair.publicKey
+      metadata,
+      [
+          driver.Transaction.makeOutput(
+              driver.Transaction.makeEd25519Condition(keypair.publicKey))
+      ],
+      keypair.publicKey
     )
     // sign/fulfill the transaction
     const txSigned = driver.Transaction.signTransaction(tx, keypair.privateKey)
@@ -140,7 +140,7 @@ export class BigChainInteractions {
     return this.conn.postTransaction(txSigned)
         .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
         .then(() => txSigned)
-        // .then(res => console.log('Transaction id: '+ txSigned.id))
+        .then(res => console.log('Transaction id: '+ txSigned.id))
   }
 
   createOwnershipClaim(

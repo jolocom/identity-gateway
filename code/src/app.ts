@@ -76,6 +76,7 @@ const app = express()
 
       const destination = req.query.url
       const sourceIdentity = req.user.identity
+
       const sourceIdentitySignature = await dataSigner.signData({
         data: sourceIdentity, seedPhrase: req.query.seedPhrase
       })
@@ -88,6 +89,7 @@ const app = express()
         uri: new URL(destination).origin + '/login',
         form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
       })
+
       req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
 
@@ -432,13 +434,13 @@ const app = express()
         )
       }
     },
-    '/bigchaindb/store/ownerhsip': {
+    '/bigchaindb/store/ownership': {
       post: async (req, res) => {
         res.json(
           await bigChainInteractions.createOwnershipClaim({
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
-            contractID: req.body.contractName
+            contractID: req.body.contractID
           })
         )
       }
@@ -449,7 +451,7 @@ const app = express()
           await bigChainInteractions.createFunctionalityObject({
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
-            contractID: req.body.contractName,
+            contractID: req.body.contractID,
             object: req.body.object
           })
         )
@@ -463,7 +465,7 @@ const app = express()
             await bigChainInteractions.createSecurityClaim({
               seedPhrase: req.body.seedPhrase,
               identityURL: req.body.identityURL,
-              contractID: req.body.contractName,
+              contractID: req.body.contractID,
               sourceIdentityURL: req.user.identity,
               level: req.body.level
             })
@@ -474,7 +476,7 @@ const app = express()
               seedPhrase: req.body.seedPhrase,
               identityURL: req.body.identityURL,
               sourceIdentityURL: req.user.identity,
-              contractID: req.body.contractName
+              contractID: req.body.contractID
             })
           )
         }
@@ -485,7 +487,7 @@ const app = express()
         res.json(
           await bigChainInteractions.checkContract({
             identityURL: req.body.identityURL,
-            contractID: req.body.contractName,
+            contractID: req.body.contractID,
             retrieveHistory: req.body.retrieveHistory
           })
         )
