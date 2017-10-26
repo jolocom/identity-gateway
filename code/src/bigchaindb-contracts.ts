@@ -162,7 +162,7 @@ export class BigChainInteractions {
   }) {
     const identityURLSignature = await this._dataSigner.signData({data: identityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
-    const metadata = {identityURLSignature: {identity: identityURL, signature: identityURLSignature}, object:object}
+    const metadata = {identityURLSignature: {identity: identityURL, signature: identityURLSignature.signature}, object:object}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -175,7 +175,7 @@ export class BigChainInteractions {
   }) {
     const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionality'}
-    const metadata = {functionality:'TODO pointer_to_contract', identityURLSignature: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature}}
+    const metadata = {functionality:'TODO pointer_to_contract', identityURLSignature: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -190,7 +190,7 @@ export class BigChainInteractions {
   }) {
     const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'security'}
-    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, identityURLSignature: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature}}
+    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, identityURLSignature: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
