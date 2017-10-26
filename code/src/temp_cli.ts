@@ -46,35 +46,20 @@ initSequelize({
   })
 
   const assetdata = {
-          'bicycle': {
-                  'serial_number': 'abcd1234',
-                  'manufacturer': 'Bicycle Inc.',
-          }
+    'bicycle': {
+      'serial_number': 'abcd1234',
+      'manufacturer': 'Bicycle Inc.',
+    }
   }
 
   const metadata = {'planet': 'earth'}
 
-  //Create and query transaction
-
-  bdbint.createBDBTransaction({seedPhrase:'super batman secure seed string',assetdata:assetdata,metadata:metadata})
-  .then((id)=> {
-    bdbint.queryBigchainDB({contractID: assetdata.bicycle.serial_number, contractHash:'' })
-    .then(res => {
-      console.log('query: '+JSON.stringify(res))})
-
-      .then(() => bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'}))
-      .then((tx) => {console.log('Ownership created' + JSON.stringify(tx.id))})
-      .then(() => bdbint.createFunctionalityClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',sourceIdentityURL:'sourceIdentity', contractID:'contract1'}))
-      .then((tx)=> { console.log('Functionality created' + JSON.stringify(tx.id)) })
-      .then(() => bdbint.createSecurityClaim({seedPhrase:'super batman secure seed string', identityURL:'claim1', contractID:'contract1', sourceIdentityURL:'source3', level:5}))
-      .then((tx) => {console.log('Security created' + JSON.stringify(tx.id))})
-
-      .then(() => bdbint._retrieveContractInfo({identityURL:'claim1', contractID:'contract1', contractHash:''}))
-      .then((tx) => {console.log('Retrieve all' + JSON.stringify(tx))})
-
-  })
-
-
+  // Retrieve contract info
+  // bdbint._retrieveContractInfo({identityURL:'claim1', contractID:'contract1', contractHash:''}).then((data)=>{
+  //   console.log(data)
+  // })
+  //
+  //
   // Create ownershipClaim
   // bdbint.createOwnershipClaim({seedPhrase:'super batman secure seed string',identityURL:'claim1',contractID:'contract1'}).then((tx)=>{
   //     console.log('Ownership created' + JSON.stringify(tx))
@@ -93,6 +78,10 @@ initSequelize({
   // })
   //
   //
-  // bdbint._retrieveContractInfo({identityURL:'claim1', contractID:'contract1', contractHash:''})
+  //
+  //createFunctionalityObject
+  // bdbint.createFunctionalityObject({seedPhrase:'super batman secure seed string', identityURL:'claim1', contractID:'contract1', object: {description:'desc', methods:{['method']:{description:'method desc'}}}}).then((tx)=>{
+  //   console.log('Security created' + JSON.stringify(tx))
+  // })
 
 })

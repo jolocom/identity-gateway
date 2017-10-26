@@ -147,7 +147,7 @@ export class BigChainInteractions {
     {seedPhrase, identityURL, contractID} :
     {seedPhrase : string, identityURL : string, contractID : string}
   ) {
-    const assetdata = {asset : identityURL +';'+ contractID +';'+ 'ownership'}
+    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'ownership'}
     const metadata = {signature: 'TODO signed publicKeys with privateKey'}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
@@ -159,8 +159,8 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, contractID : string,
     object : FunctionalityObject
   }) {
-    const assetdata = {asset : identityURL +';'+ contractID +';'+ 'functionalityObject'}
-    const metadata = {signature: 'TODO signed publicKeys with privateKey'}
+    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
+    const metadata = {signature: 'TODO signed publicKeys with privateKey', object:object}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -171,7 +171,7 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractID : string
   }) {
-    const assetdata = {asset : identityURL +';'+ contractID +';'+ 'functionality'}
+    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionality'}
     const metadata = {functionality:'TODO pointer_to_contract'}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
@@ -185,7 +185,7 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const assetdata = {asset : identityURL +';'+ contractID +';'+ 'security'}
+    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'security'}
     const metadata = {sourceIdentityURL:sourceIdentityURL,level:level}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
@@ -253,38 +253,64 @@ export class BigChainInteractions {
     return ''
   }
   async _retrieveContractInfo({identityURL, contractID, contractHash}) : Promise<BigChainContractInfo> {
-    var ownershipClaims = []
-    var functionalityClaims = []
-    var securityClaims = []
-    var functionalityObjects = []
+    var ownershipClaims: BigChainOwnershipClaim
+    var functionalityClaims: BigChainFunctionalityClaim[] = []
+    var securityClaims: BigChainSecurityClaim[] = []
+    var functionalityObjects: BigChainFunctionalityObject[] = []
 
-    return this.conn.searchAssets(identityURL + ';' + contractID)
-        .then((assets) => {
-          assets.forEach ((asset)=> {
-            const code = asset.data.asset.split(';')
-            switch(code[code.length-1]) {
-                case 'ownership':
-                    ownershipClaims.push(this.conn.listTransactions(asset.id))
-                    break;
-                case 'funcionality':
-                    functionalityClaims.push(this.conn.listTransactions(asset.id))
-                    break;
-                case 'security':
-                    securityClaims.push(this.conn.listTransactions(asset.id))
-                    break;
-                case 'functionalityObject':
-                    functionalityObjects.push(this.conn.listTransactions(asset.id))
-                    break;
-            }
-
-          })
-        })
-
-    // return BigChainContractInfo = {
-    //   ownershipClaims : ownershipClaims,
-    //   functionalityObjects : functionalityObjects,
-    //   functionalityClaims : functionalityClaims,
-    //   securityClaims : securityClaims}
+    this._getConnection()
+    const searchResults = await this.conn.searchAssets(identityURL + ':' + contractID +':')
+    for (let asset of searchResults) {
+      let transaction = await this.conn.getTransaction(asset.id)
+      const code = asset.data.asset.split(':')
+      switch(code[code.length-1]) {
+          case 'ownership':
+              ownershipClaims = <BigChainOwnershipClaim> {
+                assetData: transaction.asset.data.asset,
+                contractAddress: '--',
+                identityURL: '--',
+                bigChainPublicKey: '--',
+                ethereumPublicKey: '--',
+                jolocomPublicKey: '--',
+                bigChainSignature: '--',
+                ethereumSignature: '--',
+                jolocomSignature: '--'
+              }
+              break;
+          case 'funcionality':
+              functionalityClaims.push(<BigChainFunctionalityClaim>{
+                assetData: transaction.asset.data.asset,
+                identityURLSignature: '--',
+                ownershipClaimPointer: '--',
+                functionalityObjectPointer: '--',
+                contractHash: '',
+              })
+              break;
+          case 'security':
+              securityClaims.push(<BigChainSecurityClaim>{
+                assetData: transaction.asset.data.asset,
+                identityURLSignature: '--',
+                ownershipClaimPointer: '--',
+                contractHash: '',
+                level: transaction.metadata.level
+              })
+              break;
+          case 'functionalityObject':
+              functionalityObjects.push(<BigChainFunctionalityObject>{
+                assetData: transaction.asset.data.asset,
+                identityURLSignature: '--',
+                ownershipClaimPointer: '--',
+                object: transaction.metadata.object
+              })
+              break;
+      }
+    }
+    return <BigChainContractInfo> {
+      ownershipClaims: ownershipClaims,
+      functionalityObjects: functionalityObjects,
+      functionalityClaims: functionalityClaims,
+      securityClaims: securityClaims
+    }
   }
 
 
