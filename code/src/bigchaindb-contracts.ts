@@ -219,6 +219,7 @@ export class BigChainInteractions {
     })
 
     if (!contractInfo) {
+      console.log("No contract ownership found")
       return null
     }
 
@@ -276,7 +277,7 @@ export class BigChainInteractions {
     var functionalityObjects: BigChainFunctionalityObject[] = []
 
     this._getConnection()
-    const searchResults = await this.conn.searchAssets(identityURL + ':' + contractID +':')
+    const searchResults = await this.conn.searchAssets('"'+ identityURL + ':' + contractID +':"')
     for (let asset of searchResults) {
       let transaction = await this.conn.getTransaction(asset.id)
       const code = asset.data.asset.split(':')
@@ -321,6 +322,9 @@ export class BigChainInteractions {
               })
               break;
       }
+    }
+    if (ownershipClaims === undefined){
+      return null
     }
     return <BigChainContractInfo> {
       ownershipClaims: ownershipClaims,
