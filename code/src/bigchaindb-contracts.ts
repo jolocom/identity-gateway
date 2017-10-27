@@ -146,9 +146,11 @@ export class BigChainInteractions {
 
     // send it off to BigchainDB
     return this.conn.postTransaction(txSigned)
-        .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
+        .then(() => {this.conn.pollStatusAndFetchTransaction(txSigned.id)
+            console.log('yes')
+        })
         .then(() => txSigned)
-        .then(res => console.log('Transaction id: '+ txSigned.id))
+        //then((res) => console.log('Transaction id: '+ res))
   }
 
   createOwnershipClaim(
@@ -167,7 +169,7 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, contractID : string,
     object : FunctionalityObject
   }) {
-    const identityURLSignature = await this._dataSigner.signData({data: identityURL, seedPhrase})
+    const identityURLSignature = 'TODO'//TODO await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
     const metadata = {
       creator: {
@@ -186,9 +188,9 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractID : string
   }) {
-    const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
+    const sourceIdentityURLSignature = 'TODO'// TODO await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase:seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionality'}
-    const metadata = {functionality:'TODO pointer_to_contract', creator: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
+    const metadata = {functionality:'TODO pointer_to_contract', creator: {identity: 'sourceIdentityURL', signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -201,7 +203,7 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
+    const sourceIdentityURLSignature = 'TODO'//TODO await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'security'}
     const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, creator: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
