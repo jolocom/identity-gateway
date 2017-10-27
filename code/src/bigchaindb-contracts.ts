@@ -62,7 +62,7 @@ interface BigChainOwnershipClaim {
 
 // PGP signed cleartext identity URL
 interface creatorObject {
-  idnetity : string,
+  identity : string,
   signature: string
 }
 
@@ -178,9 +178,6 @@ export class BigChainInteractions {
     contractAddress: string
   }) {
 
-    //  const bla = await this._dataSigner.signData({data: 'blah', seedPhrase})
-    //  console.log(bla)
-
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'ownership'}
     const metadata = {
       identityURL,
@@ -208,11 +205,8 @@ export class BigChainInteractions {
     contractID : string,
     object : FunctionalityObject
   }) {
-    const identityURLSignature = await this._dataSigner.signData({data: identityURL, seedPhrase})
-    const assetdata = {
-      asset : identityURL +':'+ contractID +':'+ 'functionalityObject'
-    }
-
+    const identityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
+    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
     const metadata = {
       identityURL: 'TODO SIGNATURE ' + identityURL + ' TODO SIGNATURE',
       ownershipClaim: transactionID,
@@ -233,7 +227,7 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     contractID : string
   }) {
-    const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
+    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
     const assetdata = {
       asset : identityURL +':'+ contractID +':'+ 'functionality'
     }
@@ -260,7 +254,7 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
+    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
     const assetdata = {
       asset : identityURL +':'+ contractID +':'+ 'security'
     }
@@ -293,6 +287,7 @@ export class BigChainInteractions {
     })
 
     if (!contractInfo) {
+      console.log("No contract ownership found")
       return null
     }
 
@@ -350,7 +345,7 @@ export class BigChainInteractions {
     var functionalityObjects: BigChainFunctionalityObject[] = []
 
     this._getConnection()
-    const searchResults = await this.conn.searchAssets(identityURL + ':' + contractID +':')
+    const searchResults = await this.conn.searchAssets('"'+ identityURL + ':' + contractID +':"')
     for (let asset of searchResults) {
       let transaction = await this.conn.getTransaction(asset.id)
       const code = asset.data.asset.split(':')
@@ -371,16 +366,16 @@ export class BigChainInteractions {
           case 'funcionality':
               functionalityClaims.push(<BigChainFunctionalityClaim>{
                 assetData: transaction.asset.data.asset,
-                identityURLSignature: '--',
+                creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
-                functionalityObjectPointer: '--',
-                contractHash: '',
+                functionalityObjectPointer : '--',
+                contractHash: '--'
               })
               break;
           case 'security':
               securityClaims.push(<BigChainSecurityClaim>{
                 assetData: transaction.asset.data.asset,
-                identityURLSignature: '--',
+                creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
                 contractHash: '',
                 level: transaction.metadata.level
@@ -389,12 +384,15 @@ export class BigChainInteractions {
           case 'functionalityObject':
               functionalityObjects.push(<BigChainFunctionalityObject>{
                 assetData: transaction.asset.data.asset,
-                identityURLSignature: '--',
+                creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
                 object: transaction.metadata.object
               })
               break;
       }
+    }
+    if (ownershipClaims === undefined){
+      return null
     }
     return <BigChainContractInfo> {
       ownershipClaims: ownershipClaims,
@@ -428,6 +426,7 @@ export class BigChainInteractions {
         trustedVerifier: true
       },
       functionality: {
+        name: '',
         verifications: [{
           identity: '', trustedVerifier: true
         }],
