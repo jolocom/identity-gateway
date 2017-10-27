@@ -440,7 +440,9 @@ const app = express()
           await bigChainInteractions.createOwnershipClaim({
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
-            contractID: req.body.contractID
+            contractID: req.body.contractID,
+            // TODO Retrieve internally
+            contractAddress: req.body.contractAddress
           })
         )
       }
@@ -452,6 +454,7 @@ const app = express()
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
             contractID: req.body.contractID,
+            transactionID: req.body.transactionID,
             object: req.body.object
           })
         )
