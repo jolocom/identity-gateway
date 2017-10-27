@@ -62,7 +62,7 @@ interface BigChainOwnershipClaim {
 
 // PGP signed cleartext identity URL
 interface creatorObject {
-  idnetity : string,
+  identity : string,
   signature: string
 }
 
@@ -297,16 +297,16 @@ export class BigChainInteractions {
           case 'funcionality':
               functionalityClaims.push(<BigChainFunctionalityClaim>{
                 assetData: transaction.asset.data.asset,
-                identityURLSignature: '--',
+                creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
-                functionalityObjectPointer: '--',
-                contractHash: '',
+                functionalityObjectPointer : '--',
+                contractHash: '--'
               })
               break;
           case 'security':
               securityClaims.push(<BigChainSecurityClaim>{
                 assetData: transaction.asset.data.asset,
-                identityURLSignature: '--',
+                creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
                 contractHash: '',
                 level: transaction.metadata.level
@@ -315,7 +315,7 @@ export class BigChainInteractions {
           case 'functionalityObject':
               functionalityObjects.push(<BigChainFunctionalityObject>{
                 assetData: transaction.asset.data.asset,
-                identityURLSignature: '--',
+                creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
                 object: transaction.metadata.object
               })
@@ -354,6 +354,7 @@ export class BigChainInteractions {
         trustedVerifier: true
       },
       functionality: {
+        name: '',
         verifications: [{
           identity: '', trustedVerifier: true
         }],
