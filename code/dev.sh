@@ -14,4 +14,4 @@ tmux send-keys -t testrpc 'Enter'
 tmux new -d -s identity_devmon
 tmux send-keys -t identity_devmon 'nvm use 6'
 tmux send-keys -t identity_devmon 'Enter'
-tmux send-keys -t identity_devmon 'npm run devmon'
+tmux send-keys -t identity_devmon 'TEST_ETHEREUM_IDENTITY=true SESSION_BACKEND=memory npm run devmon'
