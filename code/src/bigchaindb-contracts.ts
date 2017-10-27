@@ -60,24 +60,31 @@ interface BigChainOwnershipClaim {
   jolocomSignature : string
 }
 
+// PGP signed cleartext identity URL
+interface creatorObject {
+  idnetity : string,
+  signature: string
+}
+
 interface BigChainFunctionalityObject {
-  assetData : string
-  identityURLSignature : string // PGP signed cleartext identity URL
+  assetData : string,
+  creator : creatorObject
   ownershipClaimPointer : string
   object : FunctionalityObject
 }
 
+
 interface BigChainFunctionalityClaim {
-  assetData : string
-  identityURLSignature : string // PGP signed cleartext identity URL
+  assetData : string,
+  creator : creatorObject
   ownershipClaimPointer : string
   functionalityObjectPointer : string
   contractHash : string
 }
 
 interface BigChainSecurityClaim {
-  assetData : string
-  identityURLSignature : string // PGP signed cleartext identity URL
+  assetData : string,
+  creator : creatorObject
   ownershipClaimPointer : string
   contractHash : string
   level : number
@@ -181,7 +188,7 @@ export class BigChainInteractions {
   }) {
     const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionality'}
-    const metadata = {functionality:'TODO pointer_to_contract', identityURLSignature: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
+    const metadata = {functionality:'TODO pointer_to_contract', creator: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
@@ -196,7 +203,7 @@ export class BigChainInteractions {
   }) {
     const sourceIdentityURLSignature = await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'security'}
-    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, identityURLSignature: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
+    const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, creator: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
