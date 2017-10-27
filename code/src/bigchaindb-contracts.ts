@@ -157,6 +157,17 @@ export class BigChainInteractions {
     {seedPhrase, identityURL, contractID} :
     {seedPhrase : string, identityURL : string, contractID : string}
   ) {
+    var ownershipClaims = <BigChainOwnershipClaim> {
+      assetData: identityURL +':'+ contractID +':'+ 'ownership',
+      contractAddress: '--',
+      identityURL: '--',
+      bigChainPublicKey: '--',
+      ethereumPublicKey: '--',
+      jolocomPublicKey: '--',
+      bigChainSignature: '--',
+      ethereumSignature: '--',
+      jolocomSignature: '--'
+    }
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'ownership'}
     const metadata = {signature: 'TODO signed publicKeys with privateKey'}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
@@ -169,7 +180,7 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, contractID : string,
     object : FunctionalityObject
   }) {
-    const identityURLSignature = 'TODO'//TODO await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})
+    const identityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
     const metadata = {
       creator: {
@@ -188,7 +199,7 @@ export class BigChainInteractions {
     seedPhrase : string, identityURL : string, sourceIdentityURL : string,
     contractID : string
   }) {
-    const sourceIdentityURLSignature = 'TODO'// TODO await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase:seedPhrase})
+    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionality'}
     const metadata = {functionality:'TODO pointer_to_contract', creator: {identity: 'sourceIdentityURL', signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
@@ -203,7 +214,7 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const sourceIdentityURLSignature = 'TODO'//TODO await this._dataSigner.signData({data: sourceIdentityURL, seedPhrase})
+    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'security'}
     const metadata = {sourceIdentityURL:sourceIdentityURL,level:level, creator: {identity: sourceIdentityURL, signature: sourceIdentityURLSignature.signature}}
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
