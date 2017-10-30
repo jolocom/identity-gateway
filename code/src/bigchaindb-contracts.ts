@@ -164,21 +164,19 @@ export class BigChainInteractions {
       })
   }
 
-  // TODO Make use of contract address retriever instead
   // TODO create correct signature
-  createOwnershipClaim({
+  async createOwnershipClaim({
     seedPhrase,
     identityURL,
-    contractID,
-    contractAddress
+    contractID
   } : {
     seedPhrase : string,
     identityURL : string,
-    contractID : string,
-    contractAddress: string
+    contractID : string
   }) {
 
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'ownership'}
+    const contractAddress = await this._contractAddressRetriever({identityURL, contractID})
     const metadata = {
       identityURL,
       contractAddress,
@@ -189,7 +187,7 @@ export class BigChainInteractions {
       }
     }
 
-    return this.createBDBTransaction({seedPhrase, assetdata, metadata})
+    return await this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   async createFunctionalityObject({
