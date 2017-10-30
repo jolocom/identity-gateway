@@ -459,11 +459,11 @@ export class BigChainInteractions {
   async _buildContractCheckResult({
     publicKeys,
     contractInfo,
-    contractHash
+    // contractHash
   } : {
     publicKeys,
     contractInfo : BigChainContractInfo,
-    contractHash : string
+    // contractHash : string
   }) : Promise<ContractCheckResult> {
     let lowestSecurityClaim = <SecurityClaim> null
     let highestSecurityClaim = <SecurityClaim> null
