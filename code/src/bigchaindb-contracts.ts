@@ -226,7 +226,7 @@ export class BigChainInteractions {
   }
 
   async createFunctionalityObject({
-    seedPhrase, 
+    seedPhrase,
     identityURL,
     transactionID,
     contractID,
@@ -270,11 +270,13 @@ export class BigChainInteractions {
       asset : identityURL +':'+ contractID +':'+ 'functionality'
     }
     const metadata = {
-      functionality:'TODO pointer_to_contract',
+      functionalityObjectPointer:'TODO pointer_to_contract',
       creator: {
         identity: sourceIdentityURL,
         signature: sourceIdentityURLSignature.signature
-      }
+      },
+      contractHash: 'TODO',
+      ownershipClaimPointer : 'TODO transactionID'
     }
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
@@ -298,11 +300,13 @@ export class BigChainInteractions {
     }
     const metadata = {
       sourceIdentityURL:sourceIdentityURL,
+      ownershipClaimPointer:'TODO',
       level:level,
       creator: {
         identity: sourceIdentityURL,
         signature: sourceIdentityURLSignature.signature
-      }
+      },
+      contractHash : 'TODO'
     }
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
@@ -316,7 +320,7 @@ export class BigChainInteractions {
     identityURL : string,
     contractID : string,
     retrieveHistory? : boolean
-  }) : Promise<ContractCheckResult | null> 
+  }) : Promise<ContractCheckResult | null>
     {
     const contractAddress = await this._contractAddressRetriever({identityURL, contractID})
     const contractHash = await this._retrieveContractHash({contractAddress})
@@ -389,34 +393,35 @@ export class BigChainInteractions {
       let transaction = await this.conn.getTransaction(asset.id)
       const code = asset.data.asset.split(':')
       switch(code[code.length-1]) {
+
           case 'ownership':
               ownershipClaims = <BigChainOwnershipClaim> {
                 assetData: transaction.asset.data.asset,
-                contractAddress: '--',
-                identityURL: '--',
-                bigChainPublicKey: '--',
-                ethereumPublicKey: '--',
-                jolocomPublicKey: '--',
-                bigChainSignature: '--',
-                ethereumSignature: '--',
-                jolocomSignature: '--'
+                contractAddress: transaction.metadata.contractAddress,
+                identityURL:transaction.metadata.identityURL,
+                bigChainPublicKey: 'TODO bdb publickey',
+                ethereumPublicKey: 'TODO eth publickey',
+                jolocomPublicKey: 'TODO jolocom publickey',
+                bigChainSignature: transaction.metadata.signedKeys.bdb,
+                ethereumSignature: transaction.metadata.signedKeys.ethereum,
+                jolocomSignature: transaction.metadata.signedKeys.jolocom
               }
               break;
-          case 'funcionality':
+          case 'functionality':
               functionalityClaims.push(<BigChainFunctionalityClaim>{
                 assetData: transaction.asset.data.asset,
-                creator: {identity : '--', signature: '--'},
-                ownershipClaimPointer: '--',
-                functionalityObjectPointer : '--',
-                contractHash: '--'
+                creator: {identity : transaction.metadata.creator.identity, signature: transaction.metadata.creator.signature},
+                ownershipClaimPointer: transaction.metadata.ownershipClaimPointer,
+                functionalityObjectPointer : transaction.metadata.functionalityObjectPointer,
+                contractHash: transaction.metadata.contractHash
               })
               break;
           case 'security':
               securityClaims.push(<BigChainSecurityClaim>{
                 assetData: transaction.asset.data.asset,
-                creator: {identity : '--', signature: '--'},
-                ownershipClaimPointer: '--',
-                contractHash: '',
+                creator: {identity : transaction.metadata.creator.identity, signature: transaction.metadata.creator.signature},
+                ownershipClaimPointer: transaction.metadata.ownershipClaimPointer,
+                contractHash: transaction.metadata.contractHash,
                 level: transaction.metadata.level
               })
               break;
