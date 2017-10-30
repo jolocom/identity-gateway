@@ -257,12 +257,12 @@ export async function main(config = null) : Promise<any> {
             opts['signature'] = openpgp.signature.readArmored(signature)
           }
           return (await openpgp.verify(opts)).signatures[0].valid
-       },
-       ethereum: async ({walletManager, signature, message, publicKey}) => {
-         
-       },
-       bigChain: async (url) => false
-      }
+        },
+        ethereum: async ({signature, message, publicKey}) => {
+          return walletManager.verifySignature({signature, message, publicKey})
+        },
+        bigChain: async (url) => true
+       }
     })
     let inviteStore = null
     if (config.firstInviteCode) {
