@@ -127,7 +127,7 @@ export class BigChainInteractions {
       publicKeyRetrievers : PublicKeyRetrievers,
       contractAddressRetriever : ContractAddressRetriever,
       signatureCheckers : SignatureCheckers
-    }) 
+    })
   {
     this._walletManager = walletManager
     this._dataSigner = dataSigner
@@ -482,20 +482,20 @@ export class BigChainInteractions {
     let functionalityHistory = []
     for (let func of contractInfo.functionalityObjects) {
       let temp = {
-        name: func.object.name,
-        description: func.object.description,
-        methods: func.object.methods,
-        timestamp: func.object.timestamp,
+        name: func.contractInfo.name,
+        description: func.contractInfo.description,
+        methods: func.contractInfo.methods,
+        timestamp: func.contractInfo.timestamp,
         verifications: [{
           identity: 'TODO - identity', trustedVerifier: true
         }]
       }
       console.log(temp)
-      if (func.object.timestamp >= functionalityTimestamp) {
+      if (func.contractInfo.timestamp >= functionalityTimestamp) {
         functionality = temp
       }
       functionalityHistory.push({
-        timestamp: func.object.timestamp,
+        timestamp: func.contractInfo.timestamp,
         current: false,
         functionality: temp
       })
@@ -541,7 +541,7 @@ export class BigChainInteractions {
     const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
     return keypair.publicKey
   }
-  
+
   // TODO move to publicKeyRetrievers
   private async _getEthereumPubKey({seedPhrase}) {
     const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
