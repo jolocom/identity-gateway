@@ -18,7 +18,8 @@ export interface MethodMap {
 
 export interface FunctionalityObject {
   name: string,
-  description : string
+  description : string,
+  timestamp: number,
 	methods : MethodMap
 }
 
@@ -126,7 +127,7 @@ export class BigChainInteractions {
       publicKeyRetrievers : PublicKeyRetrievers,
       contractAddressRetriever : ContractAddressRetriever,
       signatureCheckers : SignatureCheckers
-    }) 
+    })
   {
     this._walletManager = walletManager
     this._dataSigner = dataSigner
@@ -177,8 +178,8 @@ export class BigChainInteractions {
   } : {
     seedPhrase : string,
     identityURL : string,
-    contractID : string,
-  }) : Promise<any> {
+    contractID : string
+  }) {
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'ownership'}
     // console.log(this._publicKeyRetrievers)
     const contractAddress = await this._contractAddressRetriever({
@@ -222,7 +223,7 @@ export class BigChainInteractions {
       }
     }
 
-    return this.createBDBTransaction({seedPhrase, assetdata, metadata})
+    return await this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
   async createFunctionalityObject({
@@ -244,7 +245,7 @@ export class BigChainInteractions {
       combine: true
     })
 
-    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
+    const assetdata = {asset: `${identityURL}:${contractID}:functionalityObject`}
     const metadata = {
       identityURL: signedIdentityURL.data,
       ownershipClaim: transactionID,
@@ -265,9 +266,11 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     contractID : string
   }) {
-    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
+    const sourceIdentityURLSignature = await this._dataSigner.signData({
+      data: identityURL, seedPhrase: seedPhrase
+    })
     const assetdata = {
-      asset : identityURL +':'+ contractID +':'+ 'functionality'
+      asset: `${identityURL}:${contractID}:functionality`
     }
     const metadata = {
       functionalityObjectPointer:'TODO pointer_to_contract',
@@ -294,14 +297,16 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
+    const sourceIdentityURLSignature = await this._dataSigner.signData({
+      data: identityURL, seedPhrase: seedPhrase
+    })
     const assetdata = {
-      asset : identityURL +':'+ contractID +':'+ 'security'
+      asset: `${identityURL}:${contractID}:security`
     }
     const metadata = {
-      sourceIdentityURL:sourceIdentityURL,
-      ownershipClaimPointer:'TODO',
-      level:level,
+      sourceIdentityURL: sourceIdentityURL,
+      ownershipClaimPointer: 'TODO',
+      level,
       creator: {
         identity: sourceIdentityURL,
         signature: sourceIdentityURLSignature.signature
@@ -334,7 +339,7 @@ export class BigChainInteractions {
       console.log("No contract ownership found")
       return null
     }
-
+    /*
     const publicKeys = await this._retrievePublicKeys({contractInfo})
 
     const isOwnershipValid = await this._checkOwnershipValidity({
@@ -345,7 +350,8 @@ export class BigChainInteractions {
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
     }
-
+    */
+    const publicKeys = {}
     return await this._buildContractCheckResult({
       publicKeys,
       contractInfo,
@@ -456,45 +462,66 @@ export class BigChainInteractions {
     }
   }
 
+  async _buildContractCheckResult(
+    {publicKeys, contractInfo, contractHash} :
+    {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
+  ) : Promise<ContractCheckResult> {
 
-  async _buildContractCheckResult({
-    publicKeys,
-    contractInfo,
-    contractHash
-  } : {
-    publicKeys,
-    contractInfo : BigChainContractInfo,
-    contractHash : string
-  }) : Promise<ContractCheckResult> {
-    return
-    // temp comment for testing
-    return {
-      identityURL: '',
-      contractAddress: '',
-      currentSecurity :{},
-      lowestSecurityLevel: {
-        identity: '',
-        level: 0,
-        trustedVerifier: true
-      },
-      highestSecurityLevel: {
-        identity: '',
-        level: 0,
-        trustedVerifier: true
-      },
-      functionality: {
-        name: '',
-        verifications: [{
-          identity: '', trustedVerifier: true
-        }],
-        description: '',
-        methods: {
-          ['kra']: {
-            description : 'r'
-          }
+    let lowestSecurityClaim = <SecurityClaim> null
+    let highestSecurityClaim = <SecurityClaim> null
+    for (let claim of contractInfo.securityClaims) {
+      if (lowestSecurityClaim === null || claim.level < lowestSecurityClaim.level) {
+        lowestSecurityClaim = {
+          identity: claim.creator.identity,
+          level: claim.level,
+          trustedVerifier: true
         }
-      },
-      functionalityHistory: []
+      }
+      if (highestSecurityClaim === null || claim.level > highestSecurityClaim.level) {
+        highestSecurityClaim = {
+          identity: claim.creator.identity,
+          level: claim.level,
+          trustedVerifier: true
+        }
+      }
+    }
+
+    let functionality = <Functionality> null
+    let functionalityTimestamp = 0
+    let functionalityHistory = []
+    for (let func of contractInfo.functionalityObjects) {
+      let temp = {
+        name: func.contractInfo.name,
+        description: func.contractInfo.description,
+        methods: func.contractInfo.methods,
+        timestamp: func.contractInfo.timestamp,
+>>>>>>> 375ad27e40afa52f3424f5f89b177b196415508e
+        verifications: [{
+          identity: 'TODO - identity', trustedVerifier: true
+        }]
+      }
+      console.log(temp)
+      if (func.contractInfo.timestamp >= functionalityTimestamp) {
+        functionality = temp
+      }
+      functionalityHistory.push({
+        timestamp: func.contractInfo.timestamp,
+        current: false,
+        functionality: temp
+      })
+    }
+    if(functionalityHistory.length>0){
+      functionalityHistory[functionalityHistory.length-1].current = true;
+    }
+
+    return <ContractCheckResult>{
+      identityURL: contractInfo.ownershipClaims.identityURL,
+      contractAddress: contractInfo.ownershipClaims.contractAddress,
+      currentSecurity: {},
+      lowestSecurityLevel: lowestSecurityClaim,
+      highestSecurityLevel: highestSecurityClaim,
+      functionality: functionality,
+      functionalityHistory: functionalityHistory
     }
   }
 
@@ -524,7 +551,7 @@ export class BigChainInteractions {
     const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
     return keypair.publicKey
   }
-  
+
   // TODO move to publicKeyRetrievers
   private async _getEthereumPubKey({seedPhrase}) {
     const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
