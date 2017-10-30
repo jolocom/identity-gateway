@@ -17,7 +17,8 @@ export interface MethodMap {
 
 export interface FunctionalityObject {
   name: string,
-  description : string
+  description : string,
+  timestamp: number,
 	methods : MethodMap
 }
 
@@ -139,7 +140,6 @@ export class BigChainInteractions {
   ){
     this._getConnection()
 
-    console.log(metadata)
     const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
     const tx = driver.Transaction.makeCreateTransaction(
       assetdata,
@@ -153,7 +153,6 @@ export class BigChainInteractions {
     // sign/fulfill the transaction
     const txSigned = driver.Transaction.signTransaction(tx, keypair.privateKey)
 
-    console.log(assetdata)
     // send it off to BigchainDB
     return this.conn.postTransaction(txSigned)
       .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
@@ -193,7 +192,7 @@ export class BigChainInteractions {
   }
 
   async createFunctionalityObject({
-    seedPhrase, 
+    seedPhrase,
     identityURL,
     transactionID,
     contractID,
@@ -277,7 +276,7 @@ export class BigChainInteractions {
     identityURL : string,
     contractID : string,
     retrieveHistory? : boolean
-  }) : Promise<ContractCheckResult | null> 
+  }) : Promise<ContractCheckResult | null>
     {
     const contractAddress = await this._contractAddressRetriever({identityURL, contractID})
     const contractHash = await this._retrieveContractHash({contractAddress})
@@ -290,13 +289,14 @@ export class BigChainInteractions {
       console.log("No contract ownership found")
       return null
     }
-
+    /*
     const publicKeys = await this._retrievePublicKeys({contractInfo})
     const isOwnershipValid = await this._checkOwnershipValidity({contractInfo, publicKeys})
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
     }
-
+    */
+    const publicKeys = {}
     return await this._buildContractCheckResult({
       publicKeys, contractInfo, contractHash
     })
@@ -363,7 +363,7 @@ export class BigChainInteractions {
                 jolocomSignature: '--'
               }
               break;
-          case 'funcionality':
+          case 'functionality':
               functionalityClaims.push(<BigChainFunctionalityClaim>{
                 assetData: transaction.asset.data.asset,
                 creator: {identity : '--', signature: '--'},
@@ -408,36 +408,60 @@ export class BigChainInteractions {
     {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
   ) : Promise<ContractCheckResult> {
 
-
-
-    // temp comment for testing
-    return {
-      identityURL: '',
-      contractAddress: '',
-      currentSecurity :{},
-      lowestSecurityLevel: {
-        identity: '',
-        level: 0,
-        trustedVerifier: true
-      },
-      highestSecurityLevel: {
-        identity: '',
-        level: 0,
-        trustedVerifier: true
-      },
-      functionality: {
-        name: '',
-        verifications: [{
-          identity: '', trustedVerifier: true
-        }],
-        description: '',
-        methods: {
-          ['kra']: {
-            description : 'r'
-          }
+    let lowestSecurityClaim = <SecurityClaim> null
+    let highestSecurityClaim = <SecurityClaim> null
+    for (let claim of contractInfo.securityClaims) {
+      if (lowestSecurityClaim === null || claim.level < lowestSecurityClaim.level) {
+        lowestSecurityClaim = {
+          identity: claim.creator.identity,
+          level: claim.level,
+          trustedVerifier: true
         }
-      },
-      functionalityHistory: []
+      }
+      if (highestSecurityClaim === null || claim.level > highestSecurityClaim.level) {
+        highestSecurityClaim = {
+          identity: claim.creator.identity,
+          level: claim.level,
+          trustedVerifier: true
+        }
+      }
+    }
+
+    let functionality = <Functionality> null
+    let functionalityTimestamp = 0
+    let functionalityHistory = []
+    for (let func of contractInfo.functionalityObjects) {
+      let temp = {
+        name: func.object.name,
+        description: func.object.description,
+        methods: func.object.methods,
+        timestamp: func.object.timestamp,
+        verifications: [{
+          identity: 'TODO - identity', trustedVerifier: true
+        }]
+      }
+      console.log(temp)
+      if (func.object.timestamp >= functionalityTimestamp) {
+        functionality = temp
+      }
+      functionalityHistory.push({
+        timestamp: func.object.timestamp,
+        current: false,
+        functionality: temp
+      })
+    }
+    if(functionalityHistory.length>0){
+      functionalityHistory[functionalityHistory.length-1].current = true;
+    }
+
+    return <ContractCheckResult>{
+      identityURL: contractInfo.ownershipClaims.identityURL,
+      contractAddress: contractInfo.ownershipClaims.contractAddress,
+      currentSecurity: {},
+      lowestSecurityLevel: lowestSecurityClaim,
+      highestSecurityLevel: highestSecurityClaim,
+      functionality: functionality,
+      functionalityHistory: functionalityHistory
     }
   }
 

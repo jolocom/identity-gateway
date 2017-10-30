@@ -55,9 +55,9 @@ initSequelize({
   const metadata = {'planet': 'earth'}
 
   // Check contract
-  //bdbint.checkContract({identityURL:'http://localhost:5678/joe', contractID: 'dummyContract3', retrieveHistory:false}).then((contract)=>{
-  //  console.log(contract)
-  //})
+  bdbint.checkContract({identityURL:'http://localhost:5678/joe', contractID: 'dummyContract3', retrieveHistory:false}).then((contract)=>{
+    console.log(contract)
+  })
   //
   //
   // Retrieve contract info
