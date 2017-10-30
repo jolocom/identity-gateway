@@ -379,20 +379,24 @@ const app = express()
     '/ethereum/contracts': {
       put: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.user.userName)
-        const contractId = uuid()
+        const contractID = uuid()
         await attributeStore.storeJsonAttribute({
-          userId, type: 'eth-contract', id: contractId,
+          userId, 
+          type: 'eth-contract',
+          id: contractID,
           value: req.body
         })
-        res.json({contractId})
+        res.json({contractID})
       }
     },
     '/ethereum/contracts/:id': {
       put: async (req, res) => {
         const userId = await identityStore.getUserIdByUserName(req.user.userName)
-        const contractId = req.params.id
+        const contractID = req.params.id
         await attributeStore.storeJsonAttribute({
-          userId, type: 'eth-contract', id: contractId,
+          userId,
+          type: 'eth-contract',
+          id: contractID,
           value: req.body
         })
         res.send('OK')
@@ -440,9 +444,7 @@ const app = express()
           await bigChainInteractions.createOwnershipClaim({
             seedPhrase: req.body.seedPhrase,
             identityURL: req.user.identity,
-            contractID: req.body.contractID,
-            // TODO Retrieve internally
-            contractAddress: req.body.contractAddress
+            contractID: req.body.contractID
           })
         )
       }
@@ -455,7 +457,7 @@ const app = express()
             identityURL: req.user.identity,
             contractID: req.body.contractID,
             transactionID: req.body.transactionID,
-            object: req.body.object
+            contractInfo: req.body.contractInfo
           })
         )
       }

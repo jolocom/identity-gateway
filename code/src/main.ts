@@ -41,6 +41,7 @@ export async function main(config = null) : Promise<any> {
   if (!config) {
     try {
       config = require('../config.json')
+      console.log('HEY', config)
     } catch(e) {
       if (DEVELOPMENT_MODE) {
         config = {
@@ -52,7 +53,6 @@ export async function main(config = null) : Promise<any> {
     }
   }
 
-  try {
     const {sequelize, sequelizeModels} = await initSequelize({
       devMode: DEVELOPMENT_MODE
     })
@@ -84,15 +84,13 @@ export async function main(config = null) : Promise<any> {
       identityModel: sequelizeModels.Identity,
       linkedIdentityModel: sequelizeModels.LinkedIdentity
     })
+
     const attributeStore = new SequelizeAttributeStore({
       attributeModel: sequelizeModels.Attribute
     })
     const publicKeyRetrievers = {
       url: async (identity) => {
         return JSON.parse((await request(identity))).publicKey
-      },
-      ethereum: async (identity, identityAddress) => {
-        return await walletManager.getPublicKeyByUri({uri: identity, identityAddress})
       }
     }
     const accessRights = new SequelizeAccessRights({
@@ -195,7 +193,6 @@ export async function main(config = null) : Promise<any> {
       ethereumConfig.pin = '1111'
     }
     ethereumConfig.debug = process.env.DEBUG_CONTRACTS_LIB === 'true'
-
     const walletManager = new WalletManager(ethereumConfig)
     if ((DEVELOPMENT_MODE || ethereumConfig.testSetup) && !ethereumConfig.lookupContractAddress) {
       await walletManager.setupTestRPC({
@@ -250,6 +247,7 @@ export async function main(config = null) : Promise<any> {
           json: true
         })).address
       },
+      publicKeyRetrievers,
       signatureCheckers: {
         jolocom: async ({publicKey, signature, message}) => {
           const opts = {
@@ -339,10 +337,6 @@ export async function main(config = null) : Promise<any> {
     }
 
     return server
-  } catch (e) {
-    console.error(e)
-    console.trace()
-  }
 }
 
 if(require.main === module){

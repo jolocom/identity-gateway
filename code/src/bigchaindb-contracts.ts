@@ -2,6 +2,7 @@ import * as _ from 'lodash'
 import { DataSigner } from './data-signer'
 import * as driver from 'bigchaindb-driver'
 import * as bip39 from 'bip39'
+import * as ed25519 from 'ed25519'
 
 const API_PATH = 'http://ec2-35-157-164-199.eu-central-1.compute.amazonaws.com:49994/api/v1/'
 
@@ -70,7 +71,7 @@ interface BigChainFunctionalityObject {
   assetData : string,
   creator : creatorObject
   ownershipClaimPointer : string
-  object : FunctionalityObject
+  contractInfo: FunctionalityObject
 }
 
 
@@ -105,41 +106,46 @@ type SignatureCheckers = {[type : string] : (
   {publicKey : string, signature? : string, message : string}
 ) => Promise<boolean>}
 
+// TODO Functioning key retriever
 export class BigChainInteractions {
   private _walletManager
   private _dataSigner : DataSigner
-  // private _publicKeyRetrievers : PublicKeyRetrievers
+  private _publicKeyRetrievers : PublicKeyRetrievers
   private _contractAddressRetriever : ContractAddressRetriever
   private _signatureCheckers : SignatureCheckers
 
-  constructor(
-    {
+  constructor({
       walletManager,
       dataSigner,
-      // publicKeyRetrievers,
+      publicKeyRetrievers,
       contractAddressRetriever,
       signatureCheckers
-    } :
-    {
+    } : {
       walletManager,
       dataSigner : DataSigner,
-      // publicKeyRetrievers : PublicKeyRetrievers,
+      publicKeyRetrievers : PublicKeyRetrievers,
       contractAddressRetriever : ContractAddressRetriever,
-      signatureCheckers : SignatureCheckers}
-  ) {
+      signatureCheckers : SignatureCheckers
+    }) 
+  {
     this._walletManager = walletManager
     this._dataSigner = dataSigner
-    // this._publicKeyRetrievers = publicKeyRetrievers
+    this._publicKeyRetrievers = publicKeyRetrievers
     this._contractAddressRetriever = contractAddressRetriever
     this._signatureCheckers = signatureCheckers
   }
 
-  createBDBTransaction(
-    {seedPhrase, assetdata, metadata}:{ seedPhrase: string, assetdata: any, metadata: any}
-  ){
+  createBDBTransaction({
+    seedPhrase,
+    assetdata,
+    metadata
+  }:{
+    seedPhrase: string,
+    assetdata: any,
+    metadata: any
+  }) : Promise<any> {
     this._getConnection()
 
-    console.log(metadata)
     const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
     const tx = driver.Transaction.makeCreateTransaction(
       assetdata,
@@ -153,7 +159,6 @@ export class BigChainInteractions {
     // sign/fulfill the transaction
     const txSigned = driver.Transaction.signTransaction(tx, keypair.privateKey)
 
-    console.log(assetdata)
     // send it off to BigchainDB
     return this.conn.postTransaction(txSigned)
       .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
@@ -164,28 +169,56 @@ export class BigChainInteractions {
       })
   }
 
-  // TODO Make use of contract address retriever instead
   // TODO create correct signature
-  createOwnershipClaim({
+  async createOwnershipClaim({
     seedPhrase,
     identityURL,
-    contractID,
-    contractAddress
+    contractID
   } : {
     seedPhrase : string,
     identityURL : string,
     contractID : string,
-    contractAddress: string
-  }) {
-
+  }) : Promise<any> {
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'ownership'}
+    // console.log(this._publicKeyRetrievers)
+    const contractAddress = await this._contractAddressRetriever({
+      identityURL,
+      contractID
+    })
+
+    // ETHEREUM SIGNATURES
+    const ethereumKey = await this._getEthereumPubKey({seedPhrase})
+    const ethereumSignature = await this._createEthereumSignature({
+        seedPhrase,
+        message: ethereumKey
+    })
+
+    const ethereumSection = {
+      key: ethereumKey,
+      signature: ethereumSignature
+    }
+
+    // JOLOCOM SIGNATURES
+    const jolocomKey = await this._publicKeyRetrievers.url(identityURL)
+    const { signature } = await this._dataSigner.signData({
+      data: jolocomKey,
+      seedPhrase
+    })
+    const jolocomSection = {
+      key: jolocomKey,
+      signature
+    }
+    //
+    // BDB SIGNATURES
+    const bdbKey =  await this._getBdbPublicKey({seedPhrase})
+
     const metadata = {
       identityURL,
       contractAddress,
       signedKeys: {
-        bdb: 'TODO',
-        ethereum: 'TODO',
-        jolocom: 'TODO',
+        bdb: bdbKey,
+        ethereum: ethereumSection,
+        jolocom: jolocomSection,
       }
     }
 
@@ -197,20 +230,25 @@ export class BigChainInteractions {
     identityURL,
     transactionID,
     contractID,
-    object
+    contractInfo
   } : {
     seedPhrase : string,
     identityURL : string,
     transactionID: string,
     contractID : string,
-    object : FunctionalityObject
+    contractInfo: FunctionalityObject
   }) {
-    const identityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
+    const signedIdentityURL = await this._dataSigner.signData({
+      data: identityURL,
+      seedPhrase,
+      combine: true
+    })
+
     const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
     const metadata = {
-      identityURL: 'TODO SIGNATURE ' + identityURL + ' TODO SIGNATURE',
+      identityURL: signedIdentityURL.data,
       ownershipClaim: transactionID,
-      functionalityObject: object
+      functionalityObject: contractInfo
     }
 
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
@@ -269,6 +307,7 @@ export class BigChainInteractions {
     return this.createBDBTransaction({seedPhrase, assetdata, metadata})
   }
 
+  // TODO CONTRACT HASH FUNCTION
   async checkContract({
     identityURL,
     contractID,
@@ -386,7 +425,7 @@ export class BigChainInteractions {
                 assetData: transaction.asset.data.asset,
                 creator: {identity : '--', signature: '--'},
                 ownershipClaimPointer: '--',
-                object: transaction.metadata.object
+                contractInfo: transaction.metadata.contractInfo
               })
               break;
       }
@@ -460,5 +499,25 @@ export class BigChainInteractions {
     if (!this.conn) {
       this.conn = new driver.Connection(API_PATH)
     }
+  }
+
+  // TODO move to publicKeyRetrievers
+  private _getBdbPublicKey({seedPhrase}) {
+    const keypair = new driver.Ed25519Keypair(bip39.mnemonicToSeed(seedPhrase).slice(0,32))
+    return keypair.publicKey
+  }
+  
+  // TODO move to publicKeyRetrievers
+  private async _getEthereumPubKey({seedPhrase}) {
+    const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
+    const keys = wallet.getEncryptionKeys()
+    return keys.publicKey
+  }
+
+  // TODO move to dataSigner?
+  private async _createEthereumSignature({seedPhrase, message}) {
+    const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
+    const signature = wallet.signData({message})
+    return signature
   }
 }
