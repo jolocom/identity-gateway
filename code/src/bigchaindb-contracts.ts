@@ -57,7 +57,7 @@ interface BigChainOwnershipClaim {
   ethereumPublicKey : string
   jolocomPublicKey : string
 
-  bigChainSignature : string
+  bigChainTransactionOwner : string
   ethereumSignature : string
   jolocomSignature : string
 }
@@ -374,8 +374,8 @@ export class BigChainInteractions {
   }) {
     const toCheck = [
       {type: 'jolocom', signature: contractInfo.ownershipClaims.jolocomSignature},
-      {type: 'ethereum', signature: contractInfo.ownershipClaims.ethereumSignature},
-      {type: 'bigChain', signature: contractInfo.ownershipClaims.bigChainSignature},
+      {type: 'ethereum', signature: contractInfo.ownershipClaims.ethereumSignature}
+      {type: 'bigChain', signature: contractInfo.ownershipClaims.bigChainTransactionOwner},
     ]
     const checked = await Promise.all(toCheck.map(check => {
       return this._signatureCheckers[check.type]({
@@ -412,7 +412,7 @@ export class BigChainInteractions {
                 bigChainPublicKey: transaction.metadata.signedKeys.bdb,
                 ethereumPublicKey: transaction.metadata.signedKeys.ethereum.key,
                 jolocomPublicKey: transaction.metadata.signedKeys.jolocom.key,
-                bigChainSignature: 'todo',
+                bigChainTransactionOwner: transaction.inputs[0].owners_before[0],
                 ethereumSignature: transaction.metadata.signedKeys.ethereum.signature,
                 jolocomSignature: transaction.metadata.signedKeys.jolocom.signature
               }
@@ -456,11 +456,15 @@ export class BigChainInteractions {
     }
   }
 
-  async _buildContractCheckResult(
-    {publicKeys, contractInfo, contractHash} :
-    {publicKeys, contractInfo : BigChainContractInfo, contractHash : string}
-  ) : Promise<ContractCheckResult> {
-
+  async _buildContractCheckResult({
+    publicKeys,
+    contractInfo,
+    contractHash
+  } : {
+    publicKeys,
+    contractInfo : BigChainContractInfo,
+    contractHash : string
+  }) : Promise<ContractCheckResult> {
     let lowestSecurityClaim = <SecurityClaim> null
     let highestSecurityClaim = <SecurityClaim> null
     for (let claim of contractInfo.securityClaims) {
@@ -483,6 +487,7 @@ export class BigChainInteractions {
     let functionality = <Functionality> null
     let functionalityTimestamp = 0
     let functionalityHistory = []
+
     for (let func of contractInfo.functionalityObjects) {
       let temp = {
         name: func.contractInfo.name,
@@ -517,10 +522,12 @@ export class BigChainInteractions {
     }
   }
 
-  queryBigchainDB(
-    {contractID, contractHash} :
-    {contractID: string, contractHash : string}
-  ){
+  queryBigchainDB({
+    contractID,
+    contractHash
+  } : {contractID: string,
+    contractHash : string
+  }){
     this._getConnection()
     let queryString = contractID
     if(contractHash)

@@ -261,7 +261,9 @@ export async function main(config = null) : Promise<any> {
         ethereum: async ({signature, message, publicKey}) => {
           return walletManager.verifySignature({signature, message, publicKey})
         },
-        bigChain: async (url) => true
+        bigChain: async ({signature, message, publicKey}) => {
+          return publicKey === signature
+        }
        }
     })
     let inviteStore = null
