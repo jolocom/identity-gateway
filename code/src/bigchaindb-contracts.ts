@@ -374,8 +374,8 @@ export class BigChainInteractions {
   }) {
     const toCheck = [
       {type: 'jolocom', signature: contractInfo.ownershipClaims.jolocomSignature},
-      {type: 'ethereum', signature: contractInfo.ownershipClaims.ethereumSignature}
-      {type: 'bigChain', signature: contractInfo.ownershipClaims.bigChainTransactionOwner},
+      {type: 'ethereum', signature: contractInfo.ownershipClaims.ethereumSignature},
+      {type: 'bigChain', signature: contractInfo.ownershipClaims.bigChainTransactionOwner}
     ]
     const checked = await Promise.all(toCheck.map(check => {
       return this._signatureCheckers[check.type]({
