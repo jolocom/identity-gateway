@@ -487,7 +487,7 @@ const app = express()
         }
       }
     },
-    'bigchaindb/check-contract': {
+    '/bigchaindb/check-contract': {
       post: async (req, res) => {
         res.json(
           await bigChainInteractions.checkContract({
