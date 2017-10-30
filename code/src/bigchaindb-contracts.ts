@@ -369,7 +369,7 @@ export class BigChainInteractions {
     contractInfo,
     publicKeys
   } : {
-    contractInfo : BigChainContractInfo, 
+    contractInfo : BigChainContractInfo,
     publicKeys
   }) {
     const toCheck = [
@@ -556,5 +556,14 @@ export class BigChainInteractions {
     const wallet = await this._walletManager.login({seedPhrase, pin: '1111'})
     const signature = wallet.signData({message})
     return signature
+  }
+
+  private async _getOwnershipClaimPointer({identityURL, contractID}) {
+    const searchResult = await this.conn.searchAssets(`"${identityURL}:${contractID}:ownership"`)
+    if (searchResult.length > 0) {
+      return searchResult[0].id
+    } else {
+      return null
+    }
   }
 }
