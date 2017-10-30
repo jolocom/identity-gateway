@@ -339,9 +339,8 @@ export class BigChainInteractions {
       console.log("No contract ownership found")
       return null
     }
-    /*
-    const publicKeys = await this._retrievePublicKeys({contractInfo})
 
+    const publicKeys = await this._retrievePublicKeys({contractInfo})
     const isOwnershipValid = await this._checkOwnershipValidity({
       contractInfo,
       publicKeys
@@ -350,8 +349,7 @@ export class BigChainInteractions {
     if (!isOwnershipValid) {
       throw new ContractOwnershipError("Could not verify contract ownership")
     }
-    */
-    const publicKeys = {}
+
     return await this._buildContractCheckResult({
       publicKeys,
       contractInfo,
@@ -379,20 +377,16 @@ export class BigChainInteractions {
       {type: 'ethereum', signature: contractInfo.ownershipClaims.ethereumSignature},
       {type: 'bigChain', signature: contractInfo.ownershipClaims.bigChainSignature},
     ]
-    const checked = Promise.all(toCheck.map(check => {
+    const checked = await Promise.all(toCheck.map(check => {
       return this._signatureCheckers[check.type]({
         publicKey: publicKeys[check.type],
         signature: check.signature,
-        message: [
-          contractInfo.ownershipClaims.identityURL,
-          contractInfo.ownershipClaims.contractAddress,
-          publicKeys.jolocom,
-          publicKeys.ethereum,
-          publicKeys.bigChain,
-        ].join(':')
+        message: contractInfo.ownershipClaims[`${check.type}PublicKey`]
       })
     }))
-    return _.every(checked)
+    return _.every(checked, (res) => {
+      return res === true
+    })
   }
 
   async _retrieveContractHash({contractAddress}){
@@ -495,12 +489,10 @@ export class BigChainInteractions {
         description: func.contractInfo.description,
         methods: func.contractInfo.methods,
         timestamp: func.contractInfo.timestamp,
->>>>>>> 375ad27e40afa52f3424f5f89b177b196415508e
         verifications: [{
           identity: 'TODO - identity', trustedVerifier: true
         }]
       }
-      console.log(temp)
       if (func.contractInfo.timestamp >= functionalityTimestamp) {
         functionality = temp
       }

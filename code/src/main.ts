@@ -41,7 +41,6 @@ export async function main(config = null) : Promise<any> {
   if (!config) {
     try {
       config = require('../config.json')
-      console.log('HEY', config)
     } catch(e) {
       if (DEVELOPMENT_MODE) {
         config = {
@@ -259,7 +258,9 @@ export async function main(config = null) : Promise<any> {
           }
           return (await openpgp.verify(opts)).signatures[0].valid
        },
-       ethereum: async (url) => false,
+       ethereum: async ({walletManager, signature, message, publicKey}) => {
+         
+       },
        bigChain: async (url) => false
       }
     })
