@@ -244,7 +244,7 @@ export class BigChainInteractions {
       combine: true
     })
 
-    const assetdata = {asset : identityURL +':'+ contractID +':'+ 'functionalityObject'}
+    const assetdata = {asset: `${identityURL}:${contractID}:functionalityObject`}
     const metadata = {
       identityURL: signedIdentityURL.data,
       ownershipClaim: transactionID,
@@ -265,9 +265,11 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     contractID : string
   }) {
-    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
+    const sourceIdentityURLSignature = await this._dataSigner.signData({
+      data: identityURL, seedPhrase: seedPhrase
+    })
     const assetdata = {
-      asset : identityURL +':'+ contractID +':'+ 'functionality'
+      asset: `${identityURL}:${contractID}:functionality`
     }
     const metadata = {
       functionalityObjectPointer:'TODO pointer_to_contract',
@@ -294,14 +296,16 @@ export class BigChainInteractions {
     sourceIdentityURL : string,
     level : number
   }) {
-    const sourceIdentityURLSignature = {signature:'TODO'} /*await this._dataSigner.signData({data: identityURL, seedPhrase: seedPhrase})*/
+    const sourceIdentityURLSignature = await this._dataSigner.signData({
+      data: identityURL, seedPhrase: seedPhrase
+    })
     const assetdata = {
-      asset : identityURL +':'+ contractID +':'+ 'security'
+      asset: `${identityURL}:${contractID}:security`
     }
     const metadata = {
-      sourceIdentityURL:sourceIdentityURL,
-      ownershipClaimPointer:'TODO',
-      level:level,
+      sourceIdentityURL: sourceIdentityURL,
+      ownershipClaimPointer: 'TODO',
+      level,
       creator: {
         identity: sourceIdentityURL,
         signature: sourceIdentityURLSignature.signature
