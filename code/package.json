@@ -82,6 +82,7 @@
   "devDependencies": {
     "@types/chai": "^3.4.35",
     "@types/mocha": "^2.2.40",
+    "babel-preset-es2015": "^6.24.1",
     "chai": "^3.5.0",
     "chai-http": "^3.0.0",
     "chai-string": "^1.2.0",

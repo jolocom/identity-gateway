@@ -26,6 +26,7 @@ initSequelize({
   const bdbint = new Bdb.BigChainInteractions({
     walletManager: WalletManager,
     dataSigner: new DataSigner({identityStore}),
+    publicKeyRetrievers: {},
     contractAddressRetriever: async ({identityURL, contractID}) : Promise<string> => {
       return (await 'fake')
     },
