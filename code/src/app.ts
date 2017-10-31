@@ -75,7 +75,7 @@ const app = express()
       const destination = req.query.url
       const sourceIdentity = req.user.identity
       const sourceIdentitySignature = await dataSigner.signData({
-        data: sourceIdentity, seedPhrase: req.query.seedPhrase
+        data: sourceIdentity, seedPhrase: req.session.seedPhrase
       })
 
       const cookieJar = request.jar()
@@ -445,6 +445,9 @@ const app = express()
         if (err) {
           return next(err)
         }
+        if (req.body.seedPhrase) {
+          req.session.seedPhrase = req.body.seedPhrase
+        }
         return res.json({success: true, userName: user.userName})
       });
     })(req, res, next);
@@ -463,12 +466,25 @@ const app = express()
         accessRightsMiddleware({
           accessRights, identityStore
         }),
+        seedPhraseMiddleware(),
         route.handler
       )
     })
   })
 
   return app
+}
+
+export function seedPhraseMiddleware()
+{
+  return async (req, res, next) => {
+    if (req.method !== 'POST' || !req.body || !req.session || !req.session.seedPhrase) {
+      return await next()
+    }
+
+    req.body.seedPhrase = req.session.seedPhrase
+    return await next()
+  }
 }
 
 export function ownerMiddleware({identityStore} :

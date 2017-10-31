@@ -13,6 +13,7 @@ import * as request from 'request-promise-native'
 import * as Sequelize from 'sequelize'
 import * as redis from 'redis'
 const session = require('express-session')
+// const RedisStore = require('connect-redis-crypto')(session)
 const RedisStore = require('connect-redis')(session)
 import { initSequelize } from './sequelize/utils'
 import { DataSigner } from './data-signer'
@@ -197,6 +198,7 @@ export async function main(config = null) : Promise<any> {
 
     const walletManager = new WalletManager(ethereumConfig)
     if ((DEVELOPMENT_MODE || ethereumConfig.testSetup) && !ethereumConfig.lookupContractAddress) {
+      console.log('Deploying test contracts...')
       await walletManager.setupTestRPC({
         seedPhrase: 'mandate print cereal style toilet hole cave mom heavy fork network indoor'
       })

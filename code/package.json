@@ -38,6 +38,7 @@
     "bluebird": "^3.1.1",
     "body-parser": "^1.17.1",
     "connect-redis": "^3.3.0",
+    "connect-redis-crypto": "^3.3.3",
     "cookie-parser": "^1.4.3",
     "express": "^4.15.2",
     "express-oauth-server": "^2.0.0-b1",

@@ -52,16 +52,14 @@ export async function createEthereumIdentity({logStep, gatewayURL, session, user
 
   await session({
     method: 'POST',
-    uri: `${gatewayURL}/${user.userName}/ethereum/create-identity`,
-    form: {seedPhrase: user.seedPhrase}
+    uri: `${gatewayURL}/${user.userName}/ethereum/create-identity`
   })
 
   logStep('Getting Ethereum identity info for user ' + (user.index + 1))
 
   let ethereumInfo = await session({
     method: 'GET',
-    uri: `${gatewayURL}/${user.userName}/ethereum`,
-    form: {seedPhrase: user.seedPhrase}
+    uri: `${gatewayURL}/${user.userName}/ethereum`
   })
   if (typeof ethereumInfo === 'string') {
     ethereumInfo = JSON.parse(ethereumInfo)
@@ -305,8 +303,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
         method: 'GET',
         uri: `${gatewayURL}/proxy`,
         qs: {
-          url: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
-          seedPhrase: secondUser.seedPhrase
+          url: `${gatewayURL}/${firstUser.userName}/identity/email/primary`
         }
       }))
 
@@ -317,7 +314,6 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
         uri: `${gatewayURL}/${secondUser.userName}/verify`,
         form: {
           identity: `${gatewayURL}/${firstUser.userName}`,
-          seedPhrase: secondUser.seedPhrase,
           attributeType: 'email',
           attributeId: 'primary',
           attributeValue: JSON.stringify({value: 'vincent@shishkabab.net'})
@@ -358,7 +354,6 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
         uri: `${gatewayURL}/${secondUser.userName}/check`,
         form: {
           identity: `${gatewayURL}/${firstUser.userName}`,
-          seedPhrase: secondUser.seedPhrase,
           attributeType: 'email',
           attributeId: 'primary',
           attributeValue: JSON.stringify({value: 'vincent@shishkabab.net'})
@@ -383,7 +378,6 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
         method: 'POST',
         uri: `${gatewayURL}/${firstUser.userName}/ethereum/deploy-contract`,
         body: {
-          seedPhrase: firstUser.seedPhrase,
           abi: artifact.abi,
           unlinkedBinary: artifact.unlinked_binary
         },
@@ -408,7 +402,6 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
         method: 'POST',
         uri: `${gatewayURL}/${firstUser.userName}/ethereum/execute/transaction`,
         body: {
-          seedPhrase: firstUser.seedPhrase,
           contractOwnerIdentity: `${gatewayURL}/${firstUser.userName}`,
           contractID: 'identity-lookup',
           method: 'createIdentity',
