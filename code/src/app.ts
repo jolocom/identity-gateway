@@ -2,6 +2,8 @@ import { SocketClientMap } from './socket-client-map';
 import { VerificationEventDispatcher } from './verification-event-dispatcher';
 import { EtherBalanceDispatcher } from './ether-balance-watcher';
 import { DataSigner } from './data-signer';
+import {WalletManager} from 'smartwallet-contracts'
+// import * as settings from 'settings'
 import * as _ from 'lodash'
 import * as moment from 'moment'
 const bodyParser = require('body-parser')
@@ -113,6 +115,22 @@ const app = express()
   //     console.trace()
   //   }
   // })
+
+  app.put('/generateSeed', async (req, res) => {
+    try {
+      const manager = new WalletManager()
+      const seedPhrase = await manager.generateSeedPhrase(req.body)
+      if (seedPhrase) {
+        console.log('seedphrase in backend', seedPhrase)
+        res.json({seedPhrase})
+      } else {
+        res.status(404).send('Generation of seedphrase failed')
+      }
+    } catch(e) {
+      console.error(e)
+      console.trace()
+    }
+  })
 
   app.get('/:userName', async (req, res) => {
     try {
