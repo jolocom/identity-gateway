@@ -60,6 +60,7 @@ export function createApp({accessRights, identityStore, identityUrlBuilder,
 {
 const app = express()
   app.use(session({
+    name: 'gateway.sid',
     secret: sessionSecret,
     store: expressSessionStore,
     resave: false,

@@ -163,6 +163,14 @@ export async function main(config = null) : Promise<any> {
     let expressSessionStore
     if (process.env.SESSION_BACKEND !== 'memory') {
       const redisClient = redis.createClient()
+
+      redisClient.on('error', (err) => {
+        if (err.code === 'ECONNREFUSED') {
+          console.error('ERROR: Could not establish connection to Redis')
+          process.exit(1)
+        }
+      })
+
       expressSessionStore = new RedisStore({
         client: redisClient
       })
