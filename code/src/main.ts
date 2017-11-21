@@ -61,7 +61,7 @@ export async function main(config = null) : Promise<any> {
     {
       await sequelize.sync()
     }
-    
+
     let privateKeySize = DEVELOPMENT_MODE ? 512 : 2048
     if (process.env.PRIV_KEY_SIZE){
       privateKeySize = parseInt(process.env.PRIV_KEY_SIZE)
@@ -264,6 +264,7 @@ export async function main(config = null) : Promise<any> {
       verificationStore,
       identityCreator: new GatewayIdentityCreator({
         identityStore,
+        attributeStore,
         getMainAddressBySeedPhrase: (seedPhrase) => walletManager.getMainAddressBySeedPhrase(seedPhrase),
         // privateKeyGenerator: new DummyGatewayPrivateKeyGenerator(),
         privateKeyGenerator: new GatewayPrivateKeyGenerator({privateKeySize}),
