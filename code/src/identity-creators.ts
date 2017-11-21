@@ -47,10 +47,6 @@ export class GatewayIdentityCreator {
       userName, keyPair, seedPhrase
     })
 
-    const address = !overrideWalletAddress
-      ? await this._getMainAddressBySeedPhrase(seedPhrase)
-      : overrideWalletAddress
-
     await this._identityStore.linkIdentity({userId, identities: {
         type: 'ethereum:wallet',
         identifier: !overrideWalletAddress
