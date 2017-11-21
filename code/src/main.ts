@@ -247,7 +247,6 @@ export async function main(config = null) : Promise<any> {
           digitOnly: false
         })
       })
-
       if (await identityStore.isEmpty()) {
         await inviteStore.generate({code: config.firstInviteCode})
       }
@@ -310,8 +309,8 @@ export async function main(config = null) : Promise<any> {
         lookupContractAddress: walletManager._config.lookupContractAddress
       })
     }
-
     return server
+
   } catch (e) {
     console.error(e)
     console.trace()

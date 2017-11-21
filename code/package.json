@@ -14,6 +14,7 @@
     "prepare-and-test": "npm run prepare && mocha build/**/*.test.js",
     "test": "mocha build/**/*.test.js",
     "test:watch": "mocha -w build/**/*.test.js",
+    "test:dev": "better-npm-run test",
     "testrpc": "testrpc --account='0xa2985156e3da3046101ae2b26093f647fed9d6ce31ffeb4d975d143ac69e5b46,1000000000000000000000001' --account='0x217bd5bc9087a7349c771bc78da459bf2862c804eabbf3b54f16193c67f9a95d,5000000000000000000000001'"
   },
   "betterScripts": {
@@ -25,6 +26,12 @@
     },
     "dev": {
       "command": "node --trace-warnings build/main.js",
+      "env": {
+        "NODE_ENV": "dev"
+      }
+    },
+    "test": {
+      "command": "mocha build/**/*.test.js",
       "env": {
         "NODE_ENV": "dev"
       }
@@ -84,7 +91,7 @@
     "chai-string": "^1.2.0",
     "concurrently": "^2.0.0",
     "ethereumjs-testrpc": "^4.1.1",
-    "mocha": "^2.4.5",
+    "mocha": "^3.0.0",
     "sinon": "^1.17.3",
     "typescript": "^2.2.2"
   }
