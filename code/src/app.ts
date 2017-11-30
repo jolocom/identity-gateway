@@ -184,11 +184,13 @@ const app = express()
   })
 
   const protectedRoutes = {
-    // /access': {
-    //   get: async (req, res) => {
+    '/logout': {
+      post: async (req, res) => {
+        req.logout()
+        res.send('OK')
+      }
+    },
 
-    //   }
-    // },
     '/access/grant': {
       post: async (req, res) => {
         const body = req.body
