@@ -56,7 +56,7 @@ export class GatewayIdentityCreator {
     })
 
     if (!overrideWalletAddress) {
-      await this._attributeStore.storeStringAttribute({
+      await this._attributeStore.storeJsonAttribute({
         userId,
         type: 'ethereumWalletAddress',
         id: uuid(),
