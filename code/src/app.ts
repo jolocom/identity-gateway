@@ -67,6 +67,13 @@ const app = express()
   }))
   app.use(passport.initialize())
   app.use(passport.session())
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", req.get('Origin'))
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+    res.header("Access-Control-Allow-Credentials", "true")
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+    next()
+  })
   app.use('/proxy',
     async (req, res) => {
       if (!req.isAuthenticated() || !req.user.id) {
@@ -93,13 +100,6 @@ const app = express()
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
   app.use(bodyParser.text())
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", req.get('Origin'))
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-    res.header("Access-Control-Allow-Credentials", "true")
-    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
-    next()
-  })
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
   setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
   // app.use(async (req, res, next) => {
@@ -115,7 +115,6 @@ const app = express()
   //     console.trace()
   //   }
   // })
-
   app.post('/generateSeed', async (req, res) => {
     const errorMsg = 'Generation of seedphrase failed'
     let seedPhrase;
@@ -189,6 +188,11 @@ const app = express()
 
     //   }
     // },
+    '/logout': {
+      get: async (req, res) => {
+        req.logout();
+      }
+    },
     '/access/grant': {
       post: async (req, res) => {
         const body = req.body
