@@ -105,6 +105,7 @@ export class SequelizeAttributeStore implements AttributeStore {
     const [obj, created] = await this._attributeModel.findOrCreate({where: {
       identityId: userId, type, key: id, dataType: 'json'
     }, defaults: {value: JSON.stringify(value)}})
+
     if (!created) {
       await obj.update({value: JSON.stringify(value)})
     }

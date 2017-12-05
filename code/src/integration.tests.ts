@@ -74,7 +74,7 @@ export async function createEthereumIdentity({logStep, gatewayURL, session, user
     method: 'GET',
     uri: `${gatewayURL}/${user.userName}/ethereum/wallet-address`,
   })).to.equal(ethereumInfo.walletAddress)
-  
+
   expect(await session({
     method: 'GET',
     uri: `${gatewayURL}/${user.userName}/ethereum/identity-address`,
@@ -104,7 +104,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
       }
       return option
     }
-    
+
     logStep('Start')
 
     const gatewayURL = 'http://localhost:' + (getOption('IDENTITY_PORT') || '5678')
@@ -149,7 +149,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
     const session_1 = request.defaults({jar: request.jar()})
     const session_2 = request.defaults({jar: request.jar()})
     const session_3 = request.defaults({jar: request.jar()})
-    
+
     await createIdentities({
       users: [firstUser, secondUser, thirdUser],
       sessions: [session_1, session_2, session_3],
@@ -172,7 +172,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
           method: 'GET',
           uri: `${gatewayURL}/${firstUser.userName}/identity/email/primary`,
         })
-        //expect false 
+        //expect false
       } catch(e) {
         expect(e.statusCode).to.equal(404)
       }
@@ -219,7 +219,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
       })
       expect(deniedAccessResponse.body).to.equal(undefined)
       expect(deniedAccessResponse.statusCode).to.equal(403)
-      
+
       logStep('Granting access to e-mail attribute')
 
       await session_1({
@@ -364,7 +364,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
           attributeValue: JSON.stringify({value: 'vincent@shishkabab.net'})
         }
       }))
-      
+
       //logStep
       //storing verification with metadata
       //checking verification with metadata
@@ -419,7 +419,7 @@ export async function devPostInit(options = {}, {lookupContractAddress = null} =
       })
 
       logStep('Retrieving identity info from lookup through external interaction')
-      
+
       console.log('Retrieved identity address', await session_1({
         method: 'POST',
         uri: `${gatewayURL}/${firstUser.userName}/ethereum/execute/call`,

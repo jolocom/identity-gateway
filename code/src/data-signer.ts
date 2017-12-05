@@ -7,15 +7,14 @@ export class DataSigner {
   constructor({identityStore} : {identityStore : GatewayIdentityStore}) {
     this._identityStore = identityStore
   }
-
-  async signData({data, seedPhrase} : {data : string, seedPhrase : string}) : Promise<{data, signature}> {
+  
+  async signData({data, seedPhrase} : {data : any, seedPhrase : string}) : Promise<{data, signature}> {
     const keyPair = await this._identityStore.getKeyPairBySeedPhrase(seedPhrase)
     const privKeyObj = openpgp.key.readArmored(keyPair.privateKey).keys[0]
     if(!privKeyObj.decrypt(seedPhrase)) {
       console.log('Failed to decrypt private key', seedPhrase, keyPair.privateKey)
       return null
     }
-    
     const result = await openpgp.sign({
         data,
         privateKeys: privKeyObj,

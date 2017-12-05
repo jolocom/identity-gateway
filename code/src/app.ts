@@ -183,11 +183,7 @@ const app = express()
   })
 
   const protectedRoutes = {
-    // /access': {
-    //   get: async (req, res) => {
-
-    //   }
-    // },
+    
     '/logout': {
       get: async (req, res) => {
         req.logout();
