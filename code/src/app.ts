@@ -67,12 +67,9 @@ const app = express()
   }))
   app.use(passport.initialize())
   app.use(passport.session())
-<<<<<<< HEAD
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
   app.use(bodyParser.text())
-=======
->>>>>>> 34ff0b71296d68c804c21f2e323a4575680876c4
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", req.get('Origin'))
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
@@ -80,17 +77,12 @@ const app = express()
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
     next()
   })
-<<<<<<< HEAD
 
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
   setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
 
 
   app.get('/proxy', async (req, res) => {
-=======
-  app.use('/proxy',
-    async (req, res) => {
->>>>>>> 34ff0b71296d68c804c21f2e323a4575680876c4
       if (!req.isAuthenticated() || !req.user.id) {
         return res.status(401).send('Not allowed')
       }
@@ -111,23 +103,15 @@ const app = express()
       req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
 
-<<<<<<< HEAD
   // app.post('/proxy', async (req, res) => {
   //     if (!req.isAuthenticated() || !req.user.id) {
   //       return res.status(401).send('Not allowed')
-=======
-  app.use(bodyParser.urlencoded({extended: true}))
-  app.use(bodyParser.json())
-  app.use(bodyParser.text())
-  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
-  setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
   // app.use(async (req, res, next) => {
   //   try {
   //     console.log(111)
   //     const res = next()
   //     if (res && res.then) {
   //       await res
->>>>>>> 34ff0b71296d68c804c21f2e323a4575680876c4
   //     }
   //
   //     const destination = req.body.url
