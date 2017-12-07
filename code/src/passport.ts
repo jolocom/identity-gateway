@@ -15,7 +15,6 @@ export function createCustomStrategy({identityStore, identityUrlBuilder, publicK
         identity: req.body.identity, signature: req.body.signature,
         publicKeyRetrievers
       })
-
       callback(null, identityURL && {
         identity: identityURL
       })

@@ -67,12 +67,25 @@ const app = express()
   }))
   app.use(passport.initialize())
   app.use(passport.session())
-  app.use('/proxy',
-    async (req, res) => {
+  app.use(bodyParser.urlencoded({extended: true}))
+  app.use(bodyParser.json())
+  app.use(bodyParser.text())
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", req.get('Origin'))
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+    res.header("Access-Control-Allow-Credentials", "true")
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+    next()
+  })
+
+  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
+  setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
+
+
+  app.get('/proxy', async (req, res) => {
       if (!req.isAuthenticated() || !req.user.id) {
         return res.status(401).send('Not allowed')
       }
-
       const destination = req.query.url
       const sourceIdentity = req.user.identity
       const sourceIdentitySignature = await dataSigner.signData({
@@ -90,30 +103,26 @@ const app = express()
       req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
 
-  app.use(bodyParser.urlencoded({extended: true}))
-  app.use(bodyParser.json())
-  app.use(bodyParser.text())
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", req.get('Origin'))
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-    res.header("Access-Control-Allow-Credentials", "true")
-    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
-    next()
-  })
-  passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
-  setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
-  // app.use(async (req, res, next) => {
-  //   try {
-  //     console.log(111)
-  //     const res = next()
-  //     if (res && res.then) {
-  //       await res
+  // app.post('/proxy', async (req, res) => {
+  //     if (!req.isAuthenticated() || !req.user.id) {
+  //       return res.status(401).send('Not allowed')
   //     }
-  //     console.log(222)
-  //   } catch(e) {
-  //     console.error(e)
-  //     console.trace()
-  //   }
+  //
+  //     const destination = req.body.url
+  //     const sourceIdentity = req.user.identity
+  //     const sourceIdentitySignature = await dataSigner.signData({
+  //       data: sourceIdentity, seedPhrase: req.body.seedPhrase
+  //     })
+  //
+  //     const cookieJar = request.jar()
+  //     const reqst = request.defaults({jar: cookieJar})
+  //
+  //     await reqst({
+  //       method: 'POST',
+  //       uri: new URL(destination).origin + '/login',
+  //       form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
+  //     })
+  //     req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   // })
 
   app.post('/generateSeed', async (req, res) => {
@@ -148,6 +157,7 @@ const app = express()
       console.trace()
     }
   })
+
   app.put('/:userName', async (req, res) => {
     try {
       const success = await identityCreator.createIdentity({
@@ -177,20 +187,12 @@ const app = express()
       res.status(403).send('Forbidden')
       return
     }
-
     res.json({
       code: await inviteStore.generate({})
     })
   })
 
   const protectedRoutes = {
-    '/logout': {
-      post: async (req, res) => {
-        req.logout()
-        res.send('OK')
-      }
-    },
-
     '/access/grant': {
       post: async (req, res) => {
         const body = req.body
@@ -233,11 +235,6 @@ const app = express()
         res.json(rules)
       }
     },
-    // '/access/revoke': {
-    //   post: async (req, res) => {
-
-    //   }
-    // },
     '/identity/:attribute': {
       get: async (req, res) => {
         const userId = req.ownerUserID
@@ -452,6 +449,12 @@ const app = express()
         )
       }
     },
+    '/logout': {
+      post: async (req, res) => {
+        req.logout()
+        res.send('OK')
+      }
+    }
   }
 
   app.post('/login', function(req, res, next) {
@@ -468,9 +471,9 @@ const app = express()
           return next(err)
         }
         return res.json({success: true, userName: user.userName})
-      });
+      })
     })(req, res, next);
-  });
+  })
 
   _.each(protectedRoutes, (methods, path) => {
     // path = path.replace('/:userName', '(?:/([A-Za-z0-9\-]+))?')
@@ -478,7 +481,6 @@ const app = express()
 
     _.each(methods, (route, method) => {
       route = route.handler ? route : {handler: route}
-
       app[method](
         path,
         ownerMiddleware({identityStore}),
@@ -489,7 +491,6 @@ const app = express()
       )
     })
   })
-
   return app
 }
 
@@ -519,9 +520,14 @@ export function accessRightsMiddleware({accessRights, identityStore} :
     }
 
     const checkPath = '/' + req.path.split('/').slice(2).join('/')
+    const displayNameCheck = checkPath === '/identity/name/display' && req.method === 'GET' || checkPath === '/identity/name' && req.method === 'GET'
+    if(displayNameCheck) {
+      return next()
+    }
     const allowed = await accessRights.check({
       userID: req.ownerUserID, identity: req.user.identity, path: checkPath
     })
+
     if (allowed.read && req.method === 'GET') {
       return next()
     } else if (allowed.write && ['POST', 'PUT'].indexOf(req.method) >= 0) {
