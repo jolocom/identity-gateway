@@ -42,6 +42,7 @@ export class MemoryGatewayIdentityStore implements GatewayIdentityStore {
   }
 
   async getKeyPairBySeedPhrase(seedPhrase) {
+    console.log(this.identities, seedPhrase, 'here is your identityModel')
     return this.identities[seedPhrase].keyPair
   }
 
