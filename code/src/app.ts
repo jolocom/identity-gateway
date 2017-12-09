@@ -82,14 +82,16 @@ const app = express()
   setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
 
 
-  app.get('/proxy', async (req, res) => {
+  app.use('/proxy', async (req, res) => {
       if (!req.isAuthenticated() || !req.user.id) {
         return res.status(401).send('Not allowed')
       }
-      const destination = req.query.url
+
+      const destination = req.method === 'GET' ? req.query.url : req.body.url
       const sourceIdentity = req.user.identity
       const sourceIdentitySignature = await dataSigner.signData({
-        data: sourceIdentity, seedPhrase: req.query.seedPhrase
+        data: sourceIdentity,
+        seedPhrase: req.method === 'GET' ? req.query.seedPhrase : req.body.seedPhrase
       })
 
       const cookieJar = request.jar()
@@ -103,33 +105,6 @@ const app = express()
       req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
   })
 
-  // app.post('/proxy', async (req, res) => {
-  //     if (!req.isAuthenticated() || !req.user.id) {
-  //       return res.status(401).send('Not allowed')
-  // app.use(async (req, res, next) => {
-  //   try {
-  //     console.log(111)
-  //     const res = next()
-  //     if (res && res.then) {
-  //       await res
-  //     }
-  //
-  //     const destination = req.body.url
-  //     const sourceIdentity = req.user.identity
-  //     const sourceIdentitySignature = await dataSigner.signData({
-  //       data: sourceIdentity, seedPhrase: req.body.seedPhrase
-  //     })
-  //
-  //     const cookieJar = request.jar()
-  //     const reqst = request.defaults({jar: cookieJar})
-  //
-  //     await reqst({
-  //       method: 'POST',
-  //       uri: new URL(destination).origin + '/login',
-  //       form: {identity: sourceIdentitySignature.data, signature: sourceIdentitySignature.signature}
-  //     })
-  //     req.pipe(request({ qs: req.query, uri: req.query.url })).pipe(res)
-  // })
   app.post('/generateSeed', async (req, res) => {
     const errorMsg = 'Generation of seedphrase failed'
     let seedPhrase;
