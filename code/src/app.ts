@@ -73,25 +73,23 @@ const app = express()
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", req.get('Origin'))
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-    res.header("Access-Control-Allow-Credentials", "true")
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+    res.header("Access-Control-Allow-Credentials", "true")
     next()
   })
 
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
   setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
 
-
   app.use('/proxy', async (req, res) => {
       if (!req.isAuthenticated() || !req.user.id) {
         return res.status(401).send('Not allowed')
       }
-
-      const destination = req.method === 'GET' ? req.query.url : req.body.url
+      const destination = req.query.url
+      const seedPhrase = req.query.seedPhrase
       const sourceIdentity = req.user.identity
       const sourceIdentitySignature = await dataSigner.signData({
-        data: sourceIdentity,
-        seedPhrase: req.method === 'GET' ? req.query.seedPhrase : req.body.seedPhrase
+        data: sourceIdentity, seedPhrase: seedPhrase
       })
 
       const cookieJar = request.jar()
