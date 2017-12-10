@@ -81,6 +81,7 @@ const app = express()
   passport.use('custom', createCustomStrategy({identityStore, identityUrlBuilder, publicKeyRetrievers}))
   setupSessionSerialization(passport, {identityStore, identityUrlBuilder})
 
+
   app.use('/proxy', async (req, res) => {
       if (!req.isAuthenticated() || !req.user.id) {
         return res.status(401).send('Not allowed')
