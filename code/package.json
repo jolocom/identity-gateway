@@ -77,7 +77,7 @@
     "smartwallet-contracts": "jolocom/smartwallet-contracts",
     "socket.io": "^2.0.3",
     "source-map-support": "^0.4.0",
-    "sqlite3": "^3.1.8",
+    "sqlite3": "^4.0.0",
     "tmp-promise": "^1.0.3",
     "url-parse": "^1.1.9",
     "uuid": "^3.1.0",
