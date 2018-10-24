@@ -8,14 +8,15 @@
     "start": "node build/main.js",
     "dev": "better-npm-run dev",
     "devmon": "better-npm-run devmon",
-    "prepare": "tsc",
+    "prepare": "npm run snyk-protect; tsc",
     "prepare:watch": "tsc --watch",
     "typings": "typings",
     "prepare-and-test": "npm run prepare && mocha build/**/*.test.js",
     "test": "mocha build/**/*.test.js",
     "test:watch": "mocha -w build/**/*.test.js",
     "test:dev": "better-npm-run test",
-    "testrpc": "testrpc --account=0xa2985156e3da3046101ae2b26093f647fed9d6ce31ffeb4d975d143ac69e5b46,1000000000000000000000001 --account=0x217bd5bc9087a7349c771bc78da459bf2862c804eabbf3b54f16193c67f9a95d,5000000000000000000000001"
+    "testrpc": "testrpc --account=0xa2985156e3da3046101ae2b26093f647fed9d6ce31ffeb4d975d143ac69e5b46,1000000000000000000000001 --account=0x217bd5bc9087a7349c771bc78da459bf2862c804eabbf3b54f16193c67f9a95d,5000000000000000000000001",
+    "snyk-protect": "snyk protect"
   },
   "betterScripts": {
     "devmon": {
@@ -72,7 +73,7 @@
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4",
     "sequelize": "^4.4.2",
-    "sequelize-cli": "^2.8.0",
+    "sequelize-cli": "^3.0.0",
     "sequelize-import": "^1.2.1",
     "smartwallet-contracts": "jolocom/smartwallet-contracts",
     "socket.io": "^2.0.3",
@@ -81,7 +82,8 @@
     "tmp-promise": "^1.0.3",
     "url-parse": "^1.1.9",
     "uuid": "^3.1.0",
-    "yargs": "^4.2.0"
+    "yargs": "^4.2.0",
+    "snyk": "^1.104.2"
   },
   "devDependencies": {
     "@types/chai": "^3.4.35",
@@ -94,5 +96,6 @@
     "mocha": "^3.0.0",
     "sinon": "^1.17.3",
     "typescript": "^2.2.2"
-  }
+  },
+  "snyk": true
 }
